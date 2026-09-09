@@ -3,8 +3,8 @@ from remy import Agent
 from config import options, require_completed
 
 
-async def main():
-    async with Agent(**options()) as agent:
+async def main(config=None):
+    async with Agent(**(options() if config is None else config)) as agent:
         handle = await agent.run("Say hello in one short sentence.")
         result = await handle.result(raise_on_error=True)
         require_completed(result)

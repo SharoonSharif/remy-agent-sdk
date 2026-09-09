@@ -1,16 +1,16 @@
-"""Explicit consumer configuration; no implicit SDK or product settings."""
+"""Example application configuration for the production API."""
 import os
 from remy import Auth
 
 
 def options():
-    names = ("DEMO_MODEL", "DEMO_GATEWAY", "DEMO_TOKEN")
+    names = ("DEMO_MODEL", "DEMO_TOKEN")
     missing = [name for name in names if not os.environ.get(name, "").strip()]
     if missing:
         raise SystemExit("Set required environment variables: " + ", ".join(missing))
     return {
         "model": os.environ["DEMO_MODEL"],
-        "auth": Auth(token=os.environ["DEMO_TOKEN"], gateway=os.environ["DEMO_GATEWAY"]),
+        "auth": Auth(token=os.environ["DEMO_TOKEN"], gateway="https://api.corepass.com/edge/v1"),
     }
 
 

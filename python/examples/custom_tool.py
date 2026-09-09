@@ -3,7 +3,7 @@ from remy import Agent, PermissionDecision, tool
 from config import options, require_completed
 
 
-async def main():
+async def main(config=None):
     calls = []
 
     @tool
@@ -18,7 +18,7 @@ async def main():
             return PermissionDecision("allow", updated_input=arguments)
         return PermissionDecision("deny")
 
-    async with Agent(**options(), tools=[add], can_use_tool=allow_add) as agent:
+    async with Agent(**(options() if config is None else config), tools=[add], can_use_tool=allow_add) as agent:
         handle = await agent.run("Use the add tool to calculate 2 + 3, then tell me its result.")
         result = await handle.result(raise_on_error=True)
         require_completed(result)

@@ -13,7 +13,8 @@ SDK 实现与 Core 运行时通过独立发行包提供；示例只使用公开 
 两种语言都提供 hello、流式输出、自定义工具三个对应场景。
 示例默认不启用产品 preset 或内置工具；工具示例仅批准自己的加法函数。
 
-运行真实模型需要显式配置 `DEMO_MODEL`、`DEMO_GATEWAY`、`DEMO_TOKEN`。
+示例直接使用生产 API：`https://api.corepass.com/edge/v1`。
+运行真实模型只需配置 `DEMO_MODEL` 和 `DEMO_TOKEN`。
 预览阶段还需通过 `REMY_CORE` 指定兼容的冻结 Core 可执行文件。
 `.env.example` 只提供占位符，程序不会自动读取它，也不要提交真实凭据。
 

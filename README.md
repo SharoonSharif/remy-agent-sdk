@@ -31,7 +31,8 @@ Both language directories include the same three scenarios:
 3. **Custom tool** — expose a local addition function and explicitly authorize it.
 
 Every example runs a real Agent through its Core subprocess. A live model run
-requires an enabled model, a gateway URL and a gateway bearer token; provider
+uses the production API at `https://api.corepass.com/edge/v1` and
+requires an enabled model and a gateway bearer token; provider
 charges may apply. Tokens are read from the environment and never included in
 example output. `.env.example` contains placeholders only; examples do not load
 `.env` files automatically.

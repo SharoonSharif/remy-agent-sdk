@@ -3,8 +3,8 @@ from remy import Agent, TextDeltaEvent
 from config import options, require_completed
 
 
-async def main():
-    async with Agent(**options()) as agent:
+async def main(config=None):
+    async with Agent(**(options() if config is None else config)) as agent:
         handle = await agent.run("Explain what an SDK is in two short sentences.")
         async for event in handle:
             if isinstance(event, TextDeltaEvent):

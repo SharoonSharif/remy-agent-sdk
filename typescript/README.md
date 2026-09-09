@@ -9,7 +9,8 @@ npm install
 # npm install --no-save --package-lock=false /path/to/remy-agent-sdk.tgz
 ```
 
-Set `REMY_CORE`, `DEMO_MODEL`, `DEMO_GATEWAY` and `DEMO_TOKEN` in your shell.
+The examples use the production API at `https://api.corepass.com/edge/v1`.
+Set `REMY_CORE`, `DEMO_MODEL` and `DEMO_TOKEN` in your shell.
 See `.env.example` for placeholders; it is not automatically loaded. `REMY_CORE`
 is the absolute path to the compatible frozen executable. The token is a gateway
 bearer, not a direct model-provider API key.

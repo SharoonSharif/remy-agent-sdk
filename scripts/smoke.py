@@ -14,6 +14,44 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Import examples without running their CLI entry points, then inject the local
+# peer explicitly. Consumer configuration always points at the production API.
+PYTHON_RUNNER = """
+import asyncio
+import importlib.util
+import os
+import sys
+from pathlib import Path
+from remy import Auth
+
+path = Path(sys.argv[1])
+sys.path.insert(0, str(path.parent))
+from config import options
+config = options()
+assert config["auth"].gateway == "https://api.corepass.com/edge/v1"
+os.environ["DEMO_GATEWAY"] = "https://unused.invalid"
+assert options()["auth"].gateway == "https://api.corepass.com/edge/v1"
+config["auth"] = Auth(token=os.environ["DEMO_TOKEN"], gateway=sys.argv[2])
+spec = importlib.util.spec_from_file_location("demo", path)
+demo = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(demo)
+asyncio.run(demo.main(config))
+"""
+
+TYPESCRIPT_RUNNER = """
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+const url = pathToFileURL(process.argv[2]);
+const { options } = await import(new URL('./config.ts', url).href);
+const config = options();
+assert.equal(config.auth.gateway, 'https://api.corepass.com/edge/v1');
+process.env.DEMO_GATEWAY = 'https://unused.invalid';
+assert.equal(options().auth.gateway, 'https://api.corepass.com/edge/v1');
+config.auth = { ...config.auth, gateway: process.argv[3] };
+const demo = await import(url.href);
+await demo.main(config);
+"""
+
 
 class ModelPeer(BaseHTTPRequestHandler):
     def log_message(self, *_args):
@@ -82,16 +120,19 @@ def main():
         with tempfile.TemporaryDirectory(prefix="remy-example-smoke-") as state:
             env = dict(os.environ, REMY_CORE=str(Path(core).resolve()),
                        DEMO_MODEL="openai/gpt-4o", DEMO_TOKEN="local-demo-token",
-                       DEMO_GATEWAY=f"http://127.0.0.1:{server.server_port}/v1",
                        COREPASS_HOME=state, HARNESS_TRACE_LLM_IO="0", HARNESS_UI_STREAM="1")
             env.pop("PYTHONPATH", None)
+            env.pop("DEMO_GATEWAY", None)
+            gateway = f"http://127.0.0.1:{server.server_port}/v1"
             for language, executable, extension in [
-                ("python", [str(python)], "py"),
-                ("typescript", ["node", "--experimental-strip-types"], "ts"),
+                ("python", [str(python), "-c", PYTHON_RUNNER], "py"),
+                ("typescript", ["node", "--experimental-strip-types", "--input-type=module",
+                                "-e", TYPESCRIPT_RUNNER, "smoke-harness"], "ts"),
             ]:
                 for example in ("hello", "streaming", "custom_tool"):
                     filename = example.replace("_", "-") if language == "typescript" else example
-                    result = subprocess.run([*executable, f"examples/{filename}.{extension}"],
+                    path = ROOT / language / "examples" / f"{filename}.{extension}"
+                    result = subprocess.run([*executable, str(path), gateway],
                                             cwd=ROOT / language, env=env, text=True,
                                             capture_output=True, timeout=90)
                     if result.returncode:

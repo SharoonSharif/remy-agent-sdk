@@ -24,14 +24,21 @@ These are independent SDK versions, not a Core compatibility guarantee. Supply
 | --- | --- |
 | [Setup and examples](python/README.md) | [Setup and examples](typescript/README.md) |
 
-Both language directories include the same four scenarios:
+Both language directories include the same eleven scenarios:
 
 1. **Hello** — run a prompt and read the final result.
 2. **Streaming** — consume text events and inspect final token usage.
 3. **Custom tool** — expose a local addition function and explicitly authorize it.
 4. **Models** — list what the gateway accepts as `model`, before choosing one.
+5. **One shot** — one prompt with no Agent to manage, plus the version constants.
+6. **Events** — every event type, and the envelope that says where each happened.
+7. **Configuration** — every construction-time parameter, set in one place.
+8. **Sessions** — resume, refresh and fork a conversation.
+9. **Extending** — inline skills, agents, hooks and an in-process MCP server.
+10. **Errors** — read a typed failure and its retry metadata.
+11. **Permissions** — interrupt a tool call, approve it out of band, resume, cancel.
 
-The first three run a real Agent through its Core subprocess. The models
+Ten of the eleven run a real Agent through its Core subprocess. The models
 example does not: listing the catalog starts no Core and spends nothing, so it
 needs neither `REMY_CORE` nor a usage task — only auth. A live model run
 uses the development API at `https://dev-api.corepass.com/edge/v1` and
@@ -71,10 +78,11 @@ Core, run from the repository root:
 REMY_CORE=/absolute/path/to/core/executable python3 scripts/smoke.py
 ```
 
-This starts a local HTTP model peer and executes all six examples through their
-installed SDK packages and the real Core. It uses a temporary state directory
-and a dummy local token, with no provider credentials or external model calls.
-Expect six `PASS` lines. TypeScript's `npm run typecheck` is a separate check.
+This starts a local HTTP model peer and executes all 22 cases (eleven scenarios
+in each language) through their installed SDK packages and the real Core. It
+uses a temporary state directory and a dummy local token, with no provider
+credentials or external model calls. Expect 22 `PASS` lines. TypeScript's
+`npm run typecheck` is a separate check.
 
 The syntax workflow checks parsing only. It does not claim model integration or
 SDK compatibility verification. Local maintainer acceptance runs the examples

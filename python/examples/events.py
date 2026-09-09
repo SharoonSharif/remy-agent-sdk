@@ -1,6 +1,7 @@
 import asyncio
 from remy import (
     Agent,
+    EventEnvelope,
     PermissionDecision,
     TextDeltaEvent,
     ThinkingDeltaEvent,
@@ -40,6 +41,7 @@ async def main(config=None):
             # is where it happened -- run_id, attempt_id, seq, origin. seq
             # orders events within a run, which matters once you buffer them.
             envelope = event.envelope
+            assert isinstance(envelope, EventEnvelope)
             if isinstance(event, ThinkingDeltaEvent):
                 print(f"thinking delta seq={envelope.seq}: {event.text}")
             elif isinstance(event, TextDeltaEvent):

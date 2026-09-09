@@ -10,9 +10,10 @@ SDK 实现与 Core 运行时通过独立发行包提供；示例只使用公开 
 - [Python 安装与运行](python/README.md)
 - [TypeScript 安装与运行](typescript/README.md)
 
-两种语言都提供 hello、流式输出、自定义工具、模型列表四个对应场景。
-前三个会通过 Core 子进程运行真实 Agent；模型列表不会 —— 查询目录不启动 Core、
-不产生花费，所以既不需要 `REMY_CORE` 也不需要 usage task，只要 auth。
+两种语言都提供 hello、流式输出、自定义工具、模型列表、一次性调用、事件、
+配置、会话、扩展、错误、权限十一个对应场景。其中十个会通过 Core 子进程运行
+真实 Agent；模型列表不会 —— 查询目录不启动 Core、不产生花费，所以既不需要
+`REMY_CORE` 也不需要 usage task，只要 auth。
 示例默认不启用产品 preset 或内置工具；工具示例仅批准自己的加法函数。
 
 示例直接使用开发 API：`https://dev-api.corepass.com/edge/v1`。
@@ -38,5 +39,5 @@ API key。网关强制用量归属：服务身份的调用没有可计费的登�
 REMY_CORE=/absolute/path/to/core/executable python3 scripts/smoke.py
 ```
 
-它会运行六个示例，使用真实 Core 和本地模拟模型网关；不需要真实 token，
-不调用外部模型。预期输出六行 PASS。
+它会运行二十二个示例，使用真实 Core 和本地模拟模型网关；不需要真实 token，
+不调用外部模型。预期输出二十二行 PASS。

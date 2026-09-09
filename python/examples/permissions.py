@@ -1,6 +1,6 @@
 import asyncio
 import json
-from remy import Agent, PermissionDecision, tool
+from remy import Agent, PermissionDecision, RunState, tool
 from config import options, require_completed, with_task
 
 
@@ -37,6 +37,7 @@ async def main(config=None):
         state = interrupted.run_state
         if state is None:
             raise RuntimeError("expected an interrupt to produce resumable state")
+        assert isinstance(state, RunState)
 
         # Plain serializable data, so the pause can outlive the process: write
         # it to a queue, let a human approve tomorrow, resume then.
@@ -90,8 +91,12 @@ async def main(config=None):
 
     # A fourth Agent, because permission_mode is set at construction. This one
     # never asks, and demonstrates cancelling a reply still in flight --
-    # "[[slow]]" makes the smoke peer stall between chunks, since a reply that
-    # has already finished cannot be cancelled.
+    # "[[slow]]" asks the smoke peer to stall between chunks so the cancel is
+    # meant to land mid-stream by design. Observed against this repo's smoke
+    # peer: removing the marker did not change the outcome -- a local IPC
+    # cancel still won the race against even a zero-delay reply in every run
+    # tried. The marker is belt-and-braces here, not load-bearing; kept
+    # because it is still the honest way to express the intent.
     async with Agent(
         **config, tools=[add], can_use_tool=allow_everything,
         permission_mode="bypass_permissions",

@@ -32,8 +32,16 @@ npm run typecheck
 npm run hello
 npm run streaming
 npm run tool
+npm run one-shot
+npm run events
+npm run configuration
+npm run sessions
+npm run extending
+npm run permissions
 # Needs no REMY_CORE — it starts no Core.
 npm run models
+# Needs the smoke peer; see ../scripts/smoke.py.
+# npm run errors
 ```
 
 Hello prints final text. Streaming prints incremental text and final usage. The

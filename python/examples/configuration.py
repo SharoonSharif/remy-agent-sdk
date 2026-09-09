@@ -26,9 +26,12 @@ async def main(config=None):
 
     # Rejected before anything is spawned, and this is the one parameter whose
     # failure mode is worth showing: a bad permission_mode is a typo, and
-    # finding out at construction beats finding out mid-run.
+    # finding out at construction beats finding out mid-run. Spelled out as
+    # model= / auth= rather than **config here, so this file -- whose whole
+    # point is naming every construction-time parameter -- also names the two
+    # that config supplies literally, instead of only ever splatting them.
     try:
-        Agent(**config, permission_mode="not-a-mode")
+        Agent(model=config["model"], auth=config["auth"], permission_mode="not-a-mode")
     except ConfigurationError as error:
         print(f"rejected at construction: {error}")
 

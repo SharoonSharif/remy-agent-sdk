@@ -87,8 +87,12 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     onPermission(_name, input) { return { behavior: 'allow', updatedInput: input }; },
   });
   try {
-    // "[[slow]]" makes the smoke peer stall between chunks: a reply that has
-    // already finished cannot be cancelled.
+    // "[[slow]]" asks the smoke peer to stall between chunks so the cancel is
+    // meant to land mid-stream by design. Observed against this repo's smoke
+    // peer: removing the marker did not change the outcome -- a local IPC
+    // cancel still won the race against even a zero-delay reply in every run
+    // tried. The marker is belt-and-braces here, not load-bearing; kept
+    // because it is still the honest way to express the intent.
     const handle = await trusting.run('[[slow]] Say hello in one short sentence.');
     // Unlike Python's Run.cancel (which returns the terminal RunResult
     // directly), this binding's Run.cancel resolves to a boolean -- whether

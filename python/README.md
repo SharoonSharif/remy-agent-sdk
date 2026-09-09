@@ -42,8 +42,17 @@ for.
 .venv/bin/python examples/hello.py
 .venv/bin/python examples/streaming.py
 .venv/bin/python examples/custom_tool.py
+.venv/bin/python examples/one_shot.py
+.venv/bin/python examples/events.py
+.venv/bin/python examples/configuration.py
+.venv/bin/python examples/sessions.py
+.venv/bin/python examples/extending.py
+.venv/bin/python examples/permissions.py
 # Needs no REMY_CORE — it starts no Core.
 .venv/bin/python examples/models.py
+# Needs the smoke peer: it asks for a 429 the real gateway will not send.
+# python3 ../scripts/smoke.py covers this one.
+# .venv/bin/python examples/errors.py
 ```
 
 For an IDE run configuration, select this directory's `.venv/bin/python` as the

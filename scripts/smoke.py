@@ -61,6 +61,7 @@ EXAMPLES = (
     ("streaming", "Demo reply: ready."),
     ("custom_tool", "Local add(2, 3) = 5"),
     ("models", "demo-model-a"),
+    ("one_shot", "Demo reply: ready."),
 )
 
 

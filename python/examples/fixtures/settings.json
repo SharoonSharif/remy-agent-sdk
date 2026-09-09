@@ -1,0 +1,4 @@
+{
+  "$comment": "A settings source for the configuration example. setting_sources takes file paths; this is the file, so the example has something real to point at.",
+  "permissions": {}
+}

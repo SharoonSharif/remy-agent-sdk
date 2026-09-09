@@ -63,6 +63,7 @@ EXAMPLES = (
     ("models", "demo-model-a"),
     ("one_shot", "Demo reply: ready."),
     ("events", "thinking delta"),
+    ("configuration", "configured cwd"),
 )
 
 

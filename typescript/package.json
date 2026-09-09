@@ -13,6 +13,7 @@
     "models": "node --experimental-strip-types examples/models.ts",
     "one-shot": "node --experimental-strip-types examples/one-shot.ts",
     "events": "node --experimental-strip-types examples/events.ts",
+    "configuration": "node --experimental-strip-types examples/configuration.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

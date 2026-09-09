@@ -24,11 +24,12 @@ async def main(config=None):
         print("before_tool hook fired")
 
     # This example is about skills, agents, hooks and MCP -- not permissions --
-    # but with no permission decision the Core auto-resolves the pending
-    # multiply call to "interrupt", and the run ends before the before_tool
-    # hook below ever gets a tool round trip to fire on. The callback exists
-    # only to let the run finish; see custom_tool.py for the permission
-    # topic itself.
+    # but both hooks above fire regardless: before_run unconditionally, and
+    # before_tool before any permission decision is even computed. What the
+    # callback actually buys is completion -- without one, the pending
+    # multiply call auto-resolves to "interrupt", the run ends as
+    # "interrupted", and require_completed() raises before the rest of the
+    # example prints. See custom_tool.py for the permission topic itself.
     async def allow_multiply(name, arguments):
         if name == "multiply":
             return PermissionDecision("allow", updated_input=arguments)

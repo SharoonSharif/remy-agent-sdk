@@ -43,10 +43,12 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     mcpServers: { local: { type: 'sdk', tools: [multiply] } },
     tools: [multiply],
     // This example is about skills, agents, hooks and MCP -- not permissions
-    // -- but with no onPermission the Core auto-resolves the pending
-    // multiply call to "interrupt", and the run ends before the before_run
-    // hook above ever fires. The callback exists only to let the run finish;
-    // see custom-tool.ts for the permission topic itself.
+    // -- but the before_run hook above fires regardless, unconditionally at
+    // the start of the run. What onPermission actually buys is completion --
+    // without it, the pending multiply call auto-resolves to "interrupt",
+    // the run ends as "interrupted", and requireCompleted() raises before
+    // the rest of the example prints. See custom-tool.ts for the permission
+    // topic itself.
     onPermission(name, input) {
       return name === 'multiply' ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny' };
     },

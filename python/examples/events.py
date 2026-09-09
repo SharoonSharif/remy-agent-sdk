@@ -17,11 +17,13 @@ async def main(config=None):
         """Add two integers and return their sum."""
         return a + b
 
-    # This example is about events, not permissions -- but with no permission
-    # decision the Core auto-resolves the pending tool call to "interrupt",
-    # and the run ends before most of the events below ever fire. The
-    # callback exists only to let the run finish; see custom_tool.py for the
-    # permission topic itself.
+    # This example is about events, not permissions -- and the events above
+    # fire regardless of the permission decision; the loop below runs to
+    # completion either way. What the callback actually buys is a
+    # "completed" run: without a decision the pending tool call
+    # auto-resolves to "interrupt", and require_completed() raises before
+    # the final print below. See custom_tool.py for the permission topic
+    # itself.
     async def allow_add(name, arguments):
         if name == "add":
             return PermissionDecision("allow", updated_input=arguments)

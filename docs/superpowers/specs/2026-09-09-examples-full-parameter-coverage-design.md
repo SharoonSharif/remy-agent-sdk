@@ -48,12 +48,12 @@ Seven new scenarios, in both bindings, for fourteen new files.
 | `events` | `EventEnvelope`, `RunEvent`, `ThinkingDeltaEvent`, `ToolEvent`, `UsageEvent` |
 | `errors` | `RemyError` and its `code` / `is_retryable` / `retry_after` / `request_id` |
 | `extending` | `skills`, `agents`, `hooks`, `hook_callbacks`, `mcp_servers` |
-| `one_shot` | `run()`, `arun()`; `SDK_API_VERSION`, `PROTOCOL_NAME`, `PROTOCOL_VERSION` |
+| `one_shot` | `arun()`; `SDK_API_VERSION`, `PROTOCOL_NAME`, `PROTOCOL_VERSION` (`run()`, the synchronous sibling, is discussed but deliberately not called — see the correction below) |
 
-With the existing four, coverage closes: all 20 `Agent` parameters and all 27
-exports appear in at least one runnable example. The table above is the
-checkable claim — it was built by enumerating both lists from the installed
-package, not by estimate.
+With the existing four, coverage closes: all 20 `Agent` parameters, and 26 of
+27 exports, appear in at least one runnable example that actually exercises
+them in code. The table above is the checkable claim — it was built by
+enumerating both lists from the installed package, not by estimate.
 
 `errors` was missing from the first version of this table, and the omission is
 worth recording rather than quietly fixing: the claim "all 27 exports" was
@@ -61,6 +61,30 @@ made and was false, because `RemyError` appeared in no scenario. Re-deriving
 the table from `remy.__all__` is what caught it. The gap was not one name — it
 was that nothing demonstrated error handling at all, which is one of the nine
 rows of the public contract.
+
+A second correction, made in final review after implementation: "all 27
+exports" was checked by `scripts/check_coverage.py` with a bare-identifier
+regex over the whole source text, so a name spelled out only in a comment —
+`run` in `one_shot.py`, in the comment explaining why `arun()` is used instead
+— counted as "covered" exactly like a real import or `isinstance` check. It
+was not alone: `Tool`, `RunEvent`, `Usage`, `Run` and `RunResult` were in the
+same position, each mentioned only in a comment, until this review added a
+real `isinstance` check for each (`custom_tool.py`, `events.py`, `streaming.py`,
+`errors.py`; `Run` and `Tool` both landed in `custom_tool.py`) and one more
+outright miss the tightened check then surfaced, `Session` in `sessions.py`
+(also fixed the same way). `run()` — the SYNCHRONOUS one-shot entry point —
+is the one export left deliberately unexercised: it raises
+`RuntimeError("run() cannot nest an event loop; use await arun()")` when
+called from inside a running event loop, and every example's `main()` runs
+inside one (`scripts/smoke.py` drives both bindings by awaiting
+`main(config)`), so calling it for real would mean contorting the harness for
+one name rather than showing genuine usage. `check_coverage.py` now
+distinguishes a name appearing in executable code (an AST `Name` or an
+import) from one appearing only in a comment or string, and records `run` as
+a single, documented, deliberate exception (`KNOWN_UNEXERCISED_EXPORTS`)
+instead of silently counting it as covered. The honest claim is 26 of 27
+exports exercised in real code, plus `run()` covered by discussion rather
+than a call.
 
 ### Why these groups
 

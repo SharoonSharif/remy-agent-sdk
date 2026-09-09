@@ -1,5 +1,5 @@
 import asyncio
-from remy import Agent, RemyError
+from remy import Agent, RemyError, RunResult
 from config import options, with_task
 
 
@@ -15,6 +15,8 @@ async def main(config=None):
         # raising. Prefer it when you intend to inspect the failure; the other
         # examples pass True because they intend to stop.
         result = await handle.result()
+        if not isinstance(result, RunResult):
+            raise RuntimeError(f"expected a RunResult, got {type(result)!r}")
         error = result.error
         if error is None:
             raise RuntimeError("expected the run to fail; the peer did not refuse")

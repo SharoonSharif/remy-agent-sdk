@@ -21,9 +21,18 @@ the original had a blind spot big enough to produce a false positive (see
      hard-coded here and not assumed by regex -- so if `options()` or
      `with_task()` ever starts or stops supplying a key, this check picks
      that up on its own next run.
-2. Every name in `remy.__all__` (minus `__version__`) appears as a bare
-   identifier somewhere in `python/examples/*.py` -- imported, used in an
-   `isinstance` check, or otherwise spelled out.
+2. Every name in `remy.__all__` (minus `__version__`) is named in EXECUTABLE
+   CODE somewhere in `python/examples/*.py` -- imported, used in an
+   `isinstance` check, or otherwise appearing as a real `ast.Name` or
+   import `ast.alias`, as opposed to merely being spelled out in a comment
+   or a string literal.
+
+   A name that appears ONLY in a comment or a string is reported separately
+   (see "exports mentioned only in a comment or string" in the output) and
+   is NOT treated as covered -- unless it is listed in
+   `KNOWN_UNEXERCISED_EXPORTS` below, each entry naming a real, considered
+   reason the export cannot be exercised without contorting an example or
+   this repository's test harness (`scripts/smoke.py`).
 
 ## What this script CANNOT see (its blind spots)
 
@@ -35,14 +44,14 @@ the original had a blind spot big enough to produce a false positive (see
   (`import remy as sdk` then `sdk.Model`), or a name reached only via
   `getattr`/`globals()`, would all be invisible to it: a genuinely covered
   parameter could be reported as a gap, or vice versa.
-- Whether a covered name is exercised meaningfully. This script only proves
-  a token appears somewhere in the source -- a real keyword argument, or a
-  name mentioned in a comment, count the same to it. Task 11's own review
-  is what upgraded three of these exports from a bare `isinstance` mention
-  written just to satisfy this kind of check into something that would
-  actually fail if the type changed. Presence here is necessary, not
-  sufficient -- read what a reported gap's fix actually does, don't just
-  make the token appear.
+- Whether a covered name is exercised meaningfully, beyond appearing as a
+  real name in the AST. `from remy import Tool, Run, RunResult, RunEvent,
+  Usage, Session` followed by an unused import would still count as "named
+  in executable code" here -- presence in the AST is necessary, not
+  sufficient. Both Task 11's review and this final one upgraded exports from
+  a bare mention (a comment, or an import nothing then used) into an
+  `isinstance` check that would actually fail if the type changed. Read what
+  a reported gap's fix actually does, don't just make the name appear.
 - TypeScript. This inspects the installed Python `remy` package and
   `python/examples/*.py` only. Whether `typescript/examples/*.ts` covers the
   same surface is a separate question this script does not answer.
@@ -52,6 +61,9 @@ or dismissed as "checker artifact" -- and it should never be made to
 disappear by teaching the checker a new blind spot on purpose. Fix the
 example the gap belongs to; only fix this script when the gap is provably
 a limitation of the check itself, and say so in the commit that does it.
+`KNOWN_UNEXERCISED_EXPORTS` is the one sanctioned exception to that rule --
+each entry is a deliberate, documented decision not to exercise a name, not
+a way to quietly launder an oversight.
 """
 import ast
 import inspect
@@ -65,6 +77,23 @@ EXAMPLES_DIR = ROOT / "python" / "examples"
 CONFIG_PY = EXAMPLES_DIR / "config.py"
 
 CONFIG_SPLAT_RE = re.compile(r"\*\*(?:\{\*\*)?config\b")
+
+#: Exports this script has confirmed are named only in a comment or string in
+#: every example, together with the reason no example calls or references
+#: them in real code. Adding a name here is a considered decision, not a
+#: shortcut -- see the module docstring.
+KNOWN_UNEXERCISED_EXPORTS = {
+    "run": (
+        "run() is the SYNCHRONOUS one-shot entry point. It raises "
+        "RuntimeError('run() cannot nest an event loop; use await arun()') "
+        "when called from inside a running event loop, and every example's "
+        "main() runs inside one -- scripts/smoke.py drives both bindings by "
+        "awaiting main(config). Calling run() from there would either fail "
+        "or require the smoke harness to invoke examples differently just "
+        "for this one name, which is not worth contorting it for. Its async "
+        "twin arun() is exercised for real in one_shot.py."
+    ),
+}
 
 
 def _ensure_remy_importable():
@@ -133,6 +162,38 @@ def example_sources():
     return {p: p.read_text() for p in sorted(EXAMPLES_DIR.glob("*.py"))}
 
 
+def named_in_code(sources):
+    """Identifiers that appear as real names in an example's AST.
+
+    Covers `from remy import X` (and `import remy as X`) aliases and every
+    `ast.Name` (a bare reference like `isinstance(x, Tool)` or `Tool(...)`)
+    -- as opposed to a name that only ever shows up inside a docstring, a
+    comment, or an unrelated string literal, which `ast.parse` never turns
+    into either of these nodes in the first place.
+
+    Deliberately does NOT also collect `ast.Attribute` access (`x.run(...)`,
+    `event.run`). That would reintroduce exactly the false positive this
+    script exists to catch: `run` is a top-level `remy` export (the
+    synchronous one-shot entry point) AND the method name every `Agent` and
+    `Session` uses to start a turn, so counting `.run(` as evidence would
+    call `run` "covered" on the strength of `agent.run(...)` calls that have
+    nothing to do with the export. A name reached only via an attribute
+    (`remy.Tool` after `import remy`) is out of scope for the same reason
+    this script never claimed to follow `getattr`/`globals()` -- see "What
+    this script CANNOT see" above.
+    """
+    names = set()
+    for path, src in sources.items():
+        tree = ast.parse(src, filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                names.add(node.id)
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                for alias in node.names:
+                    names.add(alias.asname or alias.name)
+    return names
+
+
 def main():
     _ensure_remy_importable()
     import remy
@@ -155,8 +216,21 @@ def main():
     ]
 
     exports = sorted(set(remy.__all__) - {"__version__"})
+    # The old, looser signal: does this name appear ANYWHERE in the source --
+    # comments and string literals included? Kept only to separate "mentioned
+    # nowhere at all" from "mentioned, but only in a comment or string".
     named_anywhere = set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", all_source))
-    missing_exports = [e for e in exports if e not in named_anywhere]
+    in_code = named_in_code(sources)
+
+    comment_or_string_only = sorted(
+        e for e in exports if e in named_anywhere and e not in in_code
+    )
+    unaccounted_for = [
+        e for e in exports if e not in in_code and e not in KNOWN_UNEXERCISED_EXPORTS
+    ]
+    stale_exceptions = sorted(
+        e for e in KNOWN_UNEXERCISED_EXPORTS if e in in_code
+    )
 
     print("params named directly (`param=`):", sorted(named_directly))
     print(
@@ -164,9 +238,24 @@ def main():
         sorted(covered_via_config) or "none",
     )
     print("params not set in any example:", missing_params or "none")
-    print("exports not named in any example:", missing_exports or "none")
+    print(
+        "exports mentioned only in a comment or string (not exercised):",
+        comment_or_string_only or "none",
+    )
+    print(
+        "exports excluded as known, documented gaps (see KNOWN_UNEXERCISED_EXPORTS):",
+        sorted(KNOWN_UNEXERCISED_EXPORTS) or "none",
+    )
+    if stale_exceptions:
+        print(
+            "note: these KNOWN_UNEXERCISED_EXPORTS entries are now named in "
+            "executable code -- the exception (and the claim it documents) "
+            "can be removed:",
+            stale_exceptions,
+        )
+    print("exports not accounted for at all (a real gap):", unaccounted_for or "none")
 
-    return 1 if (missing_params or missing_exports) else 0
+    return 1 if (missing_params or unaccounted_for) else 0
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from remy import (
     Agent,
     EventEnvelope,
     PermissionDecision,
+    RunEvent,
     TextDeltaEvent,
     ThinkingDeltaEvent,
     ToolEvent,
@@ -48,6 +49,11 @@ async def main(config=None):
             envelope = event.envelope
             if not isinstance(envelope, EventEnvelope):
                 raise RuntimeError(f"expected an EventEnvelope, got {type(envelope)!r}")
+            # ThinkingDeltaEvent, TextDeltaEvent, ToolEvent and UsageEvent are
+            # all subclasses of RunEvent; the base class is what the "every
+            # other event" branch below falls back on.
+            if not isinstance(event, RunEvent):
+                raise RuntimeError(f"expected a RunEvent, got {type(event)!r}")
             if isinstance(event, ThinkingDeltaEvent):
                 print(f"thinking delta seq={envelope.seq}: {event.text}")
             elif isinstance(event, TextDeltaEvent):

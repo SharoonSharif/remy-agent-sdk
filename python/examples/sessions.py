@@ -1,6 +1,6 @@
 import asyncio
 import json
-from remy import Agent, SessionStore
+from remy import Agent, Session, SessionStore
 from config import options, require_completed, with_task
 
 
@@ -15,6 +15,8 @@ async def main(config=None):
     async with Agent(**config, session_store=store) as agent:
         # agent.sessions is the collection; a Session is the handle.
         session = await agent.sessions.create()
+        if not isinstance(session, Session):
+            raise RuntimeError(f"expected a Session, got {type(session)!r}")
         print(f"session {session.session_id}")
 
         first = await session.run("Say hello in one short sentence.")

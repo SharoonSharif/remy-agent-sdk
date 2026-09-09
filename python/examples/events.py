@@ -18,13 +18,18 @@ async def main(config=None):
         """Add two integers and return their sum."""
         return a + b
 
-    # This example is about events, not permissions -- and the events above
-    # fire regardless of the permission decision; the loop below runs to
-    # completion either way. What the callback actually buys is a
-    # "completed" run: without a decision the pending tool call
-    # auto-resolves to "interrupt", and require_completed() raises before
-    # the final print below. See custom_tool.py for the permission topic
-    # itself.
+    # This example is about events, not permissions -- but the permission
+    # decision is NOT incidental to which events you see, unlike in
+    # extending.py. Verified by removing this callback: the transcript
+    # stops dead after the tool-call turn's usage event (seq 4-12, 9 events)
+    # with no ToolEvent and no TextDeltaEvent, because the pending "add"
+    # call auto-resolves to "interrupt" -- require_completed() then raises
+    # before the loop or the final print ever see the rest. With the
+    # callback allowing "add", the run continues through the tool call and
+    # a second model turn (seq up to 28), so the callback is what makes the
+    # ToolEvent and TextDeltaEvent branches below fire at all, not only what
+    # makes the run end "completed". See custom_tool.py for the permission
+    # topic itself.
     async def allow_add(name, arguments):
         if name == "add":
             return PermissionDecision("allow", updated_input=arguments)

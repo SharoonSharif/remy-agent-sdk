@@ -12,11 +12,17 @@ export async function main(config: AgentOptions = options()): Promise<void> {
       },
       execute(input) { return Number(input.a) + Number(input.b); },
     }],
-    // This example is about events, not permissions -- but with no permission
-    // decision the Core auto-resolves the pending tool call to "interrupt",
-    // and the run ends before most of the events below ever fire. The
-    // callback exists only to let the run finish; see custom-tool.ts for the
-    // permission topic itself.
+    // This example is about events, not permissions -- but the permission
+    // decision is NOT incidental to which events you see, unlike in
+    // extending.ts. Verified by removing this callback: the transcript
+    // stops dead after the tool-call turn's usage event (seq 4-12, 9 events)
+    // with no tool event and no text delta, because the pending "add" call
+    // auto-resolves to "interrupt" -- requireCompleted() then raises before
+    // the loop or the final log ever see the rest. With the callback
+    // allowing "add", the run continues through the tool call and a second
+    // model turn (seq up to 28), so the callback is what makes the tool and
+    // text-delta branches below fire at all, not only what makes the run
+    // end "completed". See custom-tool.ts for the permission topic itself.
     onPermission(name, input) {
       return name === 'add' ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny' };
     },

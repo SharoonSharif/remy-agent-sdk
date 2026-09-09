@@ -1,10 +1,10 @@
 import { Agent, type AgentOptions } from '@corepass/remy-agent-sdk/agent';
-import { options, requireCompleted, isMain } from './config.ts';
+import { options, requireCompleted, withTask, isMain } from './config.ts';
 
 export async function main(config: AgentOptions = options()): Promise<void> {
   let calls = 0;
   const agent = await Agent.connect({
-    ...config,
+    ...(await withTask(config)),
     tools: [{
       name: 'add', description: 'Add two integers and return their sum.',
       inputSchema: {

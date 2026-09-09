@@ -1,11 +1,12 @@
 import asyncio
 from remy import Agent
-from config import options, require_completed
+from config import options, require_completed, with_task
 
 
 async def main(config=None):
-    async with Agent(**(options() if config is None else config)) as agent:
-        handle = await agent.run("Say hello in one short sentence.")
+    config = options() if config is None else config
+    async with Agent(**with_task(config)) as agent:
+        handle = await agent.run("Who are you?")
         result = await handle.result(raise_on_error=True)
         require_completed(result)
         print(result.text)

@@ -9,11 +9,19 @@ npm install
 # npm install --no-save --package-lock=false /path/to/remy-agent-sdk.tgz
 ```
 
-The examples use the production API at `https://api.corepass.com/edge/v1`.
-Set `REMY_CORE`, `DEMO_MODEL` and `DEMO_TOKEN` in your shell.
+The examples use the development API at `https://dev-api.corepass.com/edge/v1`.
+Set `REMY_CORE`, `DEMO_MODEL`, `DEMO_TOKEN` and `DEMO_PRODUCT_ID` in your shell.
 See `.env.example` for placeholders; it is not automatically loaded. `REMY_CORE`
-is the absolute path to the compatible frozen executable. The token is a gateway
-bearer, not a direct model-provider API key.
+is the absolute path to the compatible frozen executable.
+
+The bearer is a `cpst2` SERVICE token, not a user's own bearer and not a
+direct model-provider API key. The gateway enforces task attribution: a
+service-authenticated call has no live session to bill, so every model call
+must carry the id of a usage task. `config.with_task` / `withTask` opens one
+against `POST /tasks` and passes the id to the Core as `SANDBOX_TASK_ID`, which
+the Core copies into `metadata.task_id`. `DEMO_PRODUCT_ID` names the product
+the spend is booked to and must be one of the audiences your token was issued
+for.
 
 ```bash
 npm run typecheck

@@ -19,12 +19,21 @@ Set configuration in your shell (PowerShell users can use `$env:NAME = "value"`)
 ```bash
 export REMY_CORE=/absolute/path/to/core/executable
 export DEMO_MODEL=your-enabled-model
+export DEMO_PRODUCT_ID=your-product-id
 # Set DEMO_TOKEN securely in your shell or secret manager.
 ```
 
-The examples use the production API at `https://api.corepass.com/edge/v1`.
-The bearer is a gateway token, not a direct model-provider API key. `.env.example`
-is a reference and is not automatically loaded.
+The examples use the development API at `https://dev-api.corepass.com/edge/v1`.
+`.env.example` is a reference and is not automatically loaded.
+
+The bearer is a `cpst2` SERVICE token, not a user's own bearer and not a
+direct model-provider API key. The gateway enforces task attribution: a
+service-authenticated call has no live session to bill, so every model call
+must carry the id of a usage task. `config.with_task` / `withTask` opens one
+against `POST /tasks` and passes the id to the Core as `SANDBOX_TASK_ID`, which
+the Core copies into `metadata.task_id`. `DEMO_PRODUCT_ID` names the product
+the spend is booked to and must be one of the audiences your token was issued
+for.
 
 ```bash
 .venv/bin/python examples/hello.py
@@ -34,7 +43,7 @@ is a reference and is not automatically loaded.
 
 For an IDE run configuration, select this directory's `.venv/bin/python` as the
 Python interpreter (Windows: `.venv/Scripts/python.exe`). Set `REMY_CORE`,
-`DEMO_MODEL`, and `DEMO_TOKEN` in that run configuration; an IDE launched outside
+`DEMO_MODEL`, `DEMO_TOKEN`, and `DEMO_PRODUCT_ID` in that run configuration; an IDE launched outside
 your terminal may not inherit its environment variables.
 
 If `from remy import Agent` fails, check the package loaded by the selected

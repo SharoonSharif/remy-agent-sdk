@@ -31,9 +31,18 @@ Both language directories include the same three scenarios:
 3. **Custom tool** — expose a local addition function and explicitly authorize it.
 
 Every example runs a real Agent through its Core subprocess. A live model run
-uses the production API at `https://api.corepass.com/edge/v1` and
-requires an enabled model and a gateway bearer token; provider
-charges may apply. Tokens are read from the environment and never included in
+uses the development API at `https://dev-api.corepass.com/edge/v1` and
+requires an enabled model, a service token and a product id; provider
+charges may apply.
+
+The bearer is a `cpst2` SERVICE token, not a user's own bearer and not a
+direct model-provider API key. The gateway enforces task attribution: a
+service-authenticated call has no live session to bill, so every model call
+must carry the id of a usage task. `config.with_task` / `withTask` opens one
+against `POST /tasks` and passes the id to the Core as `SANDBOX_TASK_ID`, which
+the Core copies into `metadata.task_id`. `DEMO_PRODUCT_ID` names the product
+the spend is booked to and must be one of the audiences your token was issued
+for. Tokens are read from the environment and never included in
 example output. `.env.example` contains placeholders only; examples do not load
 `.env` files automatically.
 

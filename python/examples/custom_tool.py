@@ -1,6 +1,6 @@
 import asyncio
 from remy import Agent, PermissionDecision, tool
-from config import options, require_completed
+from config import options, require_completed, with_task
 
 
 async def main(config=None):
@@ -18,7 +18,8 @@ async def main(config=None):
             return PermissionDecision("allow", updated_input=arguments)
         return PermissionDecision("deny")
 
-    async with Agent(**(options() if config is None else config), tools=[add], can_use_tool=allow_add) as agent:
+    config = options() if config is None else config
+    async with Agent(**with_task(config), tools=[add], can_use_tool=allow_add) as agent:
         handle = await agent.run("Use the add tool to calculate 2 + 3, then tell me its result.")
         result = await handle.result(raise_on_error=True)
         require_completed(result)

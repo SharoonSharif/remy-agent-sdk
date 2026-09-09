@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = Path(__file__).resolve().parents[1]
 
 # Import examples without running their CLI entry points, then inject the local
-# peer explicitly. Consumer configuration always points at the production API.
+# peer explicitly. Consumer configuration always points at the development API.
 PYTHON_RUNNER = """
 import asyncio
 import importlib.util
@@ -28,9 +28,9 @@ path = Path(sys.argv[1])
 sys.path.insert(0, str(path.parent))
 from config import options
 config = options()
-assert config["auth"].gateway == "https://api.corepass.com/edge/v1"
+assert config["auth"].gateway == "https://dev-api.corepass.com/edge/v1"
 os.environ["DEMO_GATEWAY"] = "https://unused.invalid"
-assert options()["auth"].gateway == "https://api.corepass.com/edge/v1"
+assert options()["auth"].gateway == "https://dev-api.corepass.com/edge/v1"
 config["auth"] = Auth(token=os.environ["DEMO_TOKEN"], gateway=sys.argv[2])
 spec = importlib.util.spec_from_file_location("demo", path)
 demo = importlib.util.module_from_spec(spec)
@@ -44,9 +44,9 @@ import { pathToFileURL } from 'node:url';
 const url = pathToFileURL(process.argv[2]);
 const { options } = await import(new URL('./config.ts', url).href);
 const config = options();
-assert.equal(config.auth.gateway, 'https://api.corepass.com/edge/v1');
+assert.equal(config.auth.gateway, 'https://dev-api.corepass.com/edge/v1');
 process.env.DEMO_GATEWAY = 'https://unused.invalid';
-assert.equal(options().auth.gateway, 'https://api.corepass.com/edge/v1');
+assert.equal(options().auth.gateway, 'https://dev-api.corepass.com/edge/v1');
 config.auth = { ...config.auth, gateway: process.argv[3] };
 const demo = await import(url.href);
 await demo.main(config);
@@ -56,6 +56,14 @@ await demo.main(config);
 class ModelPeer(BaseHTTPRequestHandler):
     def log_message(self, *_args):
         pass
+
+    def _json(self, payload, status=200):
+        encoded = json.dumps(payload).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
 
     def do_GET(self):
         self.send_response(200)
@@ -67,6 +75,12 @@ class ModelPeer(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         if self.headers.get("Authorization") != "Bearer local-demo-token":
             self.send_error(401)
+            return
+        # config.withTask/with_task opens a usage task before connecting. It
+        # has to resolve HERE rather than against the real gateway, or this
+        # script stops being the offline check it advertises.
+        if self.path.rstrip("/").endswith("/tasks"):
+            self._json({"task_id": "task_local_demo"}, status=201)
             return
         used_tool = any(m["role"] == "tool" for m in body["messages"])
         tool_call = bool(body.get("tools")) and not used_tool
@@ -120,6 +134,7 @@ def main():
         with tempfile.TemporaryDirectory(prefix="remy-example-smoke-") as state:
             env = dict(os.environ, REMY_CORE=str(Path(core).resolve()),
                        DEMO_MODEL="openai/gpt-4o", DEMO_TOKEN="local-demo-token",
+                       DEMO_PRODUCT_ID="local-demo-product",
                        COREPASS_HOME=state, HARNESS_TRACE_LLM_IO="0", HARNESS_UI_STREAM="1")
             env.pop("PYTHONPATH", None)
             env.pop("DEMO_GATEWAY", None)

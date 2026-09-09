@@ -1,8 +1,8 @@
 import { Agent, type AgentOptions } from '@corepass/remy-agent-sdk/agent';
-import { options, requireCompleted, isMain } from './config.ts';
+import { options, requireCompleted, withTask, isMain } from './config.ts';
 
 export async function main(config: AgentOptions = options()): Promise<void> {
-  const agent = await Agent.connect(config);
+  const agent = await Agent.connect(await withTask(config));
   try {
     const handle = await agent.run('Say hello in one short sentence.');
     const result = await handle.result;

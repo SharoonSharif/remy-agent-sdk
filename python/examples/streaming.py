@@ -1,10 +1,11 @@
 import asyncio
 from remy import Agent, TextDeltaEvent
-from config import options, require_completed
+from config import options, require_completed, with_task
 
 
 async def main(config=None):
-    async with Agent(**(options() if config is None else config)) as agent:
+    config = options() if config is None else config
+    async with Agent(**with_task(config)) as agent:
         handle = await agent.run("Explain what an SDK is in two short sentences.")
         async for event in handle:
             if isinstance(event, TextDeltaEvent):

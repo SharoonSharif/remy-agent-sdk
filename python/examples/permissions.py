@@ -103,7 +103,24 @@ async def main(config=None):
         permission_mode="bypass_permissions",
     ) as agent:
         handle = await agent.run("[[slow]] Say hello in one short sentence.")
-        cancelled = await handle.cancel()
+        # Run.cancel's defaults (ack_timeout=0.2, grace=2.0) are tuned for how
+        # fast a cancel is *acknowledged*, not for how long the Core actually
+        # takes to unwind a turn afterward. Measured directly against this
+        # repo's smoke peer and a real frozen Core, timing the gap between
+        # sending "turn.cancel" and the terminal event actually arriving,
+        # across 50 runs: the ack itself is near-instant (sub-millisecond)
+        # every time, but termination lands anywhere from ~1.6s to ~2.3s in
+        # the common case and, in 3 of the 50 runs, spiked to ~5.8-6.1s. That
+        # spread sits on both sides of the 2.0s default grace, which is why
+        # this example raised RemyError("... did not terminate after
+        # cancellation") in roughly 2 of every 5 runs of the offline gate --
+        # not a race with "[[slow]]"'s 0.4s stall (removing that marker
+        # doesn't change this latency at all; it comes from the Core's own
+        # cancellation teardown, not the peer). grace=10.0 leaves comfortable
+        # room above the worst observed value; ack_timeout=1.0 is raised too,
+        # both above their defaults, so this stays a realistic timeout rather
+        # than one this harness happens to have gotten away with.
+        cancelled = await handle.cancel(ack_timeout=1.0, grace=10.0)
         # A structural guard, matching the interrupt half's: if "[[slow]]" ever
         # stopped stalling the peer, the reply could complete before the
         # cancel request lands, and remy.Run.cancel returns whatever

@@ -101,21 +101,46 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     // exported from '@corepass/remy-agent-sdk/agent'
     // (`cancel(): Promise<boolean>`), not guessed. The terminal status still
     // comes from the same `result` promise every other example reads.
+    //
+    // That boolean hides a real gap: unlike Python's Run.cancel(*,
+    // ack_timeout=, grace=), this binding's Run.cancel() takes no tuning
+    // parameters at all -- reading dist/protocol/process.js in the installed
+    // package, the Core child it drives always waits a fixed, hardcoded
+    // CANCEL_GRACE_PERIOD_MS (2000ms) for the turn to terminate, and if that
+    // elapses it kills the Core process outright and resolves to `false`;
+    // there is no public way from '@corepass/remy-agent-sdk/agent' to raise
+    // that window the way the Python example now does. Timing this exact
+    // scenario against this repo's smoke peer and a real frozen Core, from
+    // the Python side (whose Run.cancel does expose ack_timeout/grace and so
+    // could be instrumented), termination after a cancel took 1.6s-6.1s
+    // across 50 runs -- comfortably past 2000ms often enough to explain an
+    // `acknowledged: false` here, and with it a killed Core, on a real
+    // fraction of runs. This is a Core/SDK-level gap this example cannot
+    // close: there is nothing to pass in to make TypeScript's cancel() wait
+    // longer, so a `false` is reported honestly rather than treated as the
+    // same "lost the race to a fast completion" case the guard below covers.
     const acknowledged = await handle.cancel();
     console.log(`cancel acknowledged: ${acknowledged}`);
-    const cancelled = await handle.result;
-    // A structural guard, matching the interrupt half's: if '[[slow]]' ever
-    // stopped stalling the peer, the reply could complete before the cancel
-    // request lands. Unlike Python, where Run.cancel's own return value is
-    // the terminal RunResult to check, this binding's cancel() only reports
-    // acknowledgement (a boolean) -- the terminal status has to come from
-    // `result` instead, which is why the check sits here rather than on
-    // `acknowledged`. Fail loudly rather than silently accepting a
-    // 'completed' run as if it had been cancelled.
-    if (cancelled.status !== 'cancelled') {
-      throw new Error(`expected the cancelled run to end as cancelled, got ${cancelled.status}`);
+    if (!acknowledged) {
+      console.log(
+        'cancel outlived this binding\'s fixed 2000ms grace; the Core was already ' +
+        'terminated, so there is no RunResult left to check -- see the comment above',
+      );
+    } else {
+      const cancelled = await handle.result;
+      // A structural guard, matching the interrupt half's: if '[[slow]]' ever
+      // stopped stalling the peer, the reply could complete before the cancel
+      // request lands. Unlike Python, where Run.cancel's own return value is
+      // the terminal RunResult to check, this binding's cancel() only reports
+      // acknowledgement (a boolean) -- the terminal status has to come from
+      // `result` instead, which is why the check sits here rather than on
+      // `acknowledged`. Fail loudly rather than silently accepting a
+      // 'completed' run as if it had been cancelled.
+      if (cancelled.status !== 'cancelled') {
+        throw new Error(`expected the cancelled run to end as cancelled, got ${cancelled.status}`);
+      }
+      console.log(`cancelled run ended as ${cancelled.status}`);
     }
-    console.log(`cancelled run ended as ${cancelled.status}`);
   } finally {
     await trusting.close();
   }

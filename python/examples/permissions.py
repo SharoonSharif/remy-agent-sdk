@@ -57,7 +57,38 @@ async def main(config=None):
         require_completed(result)
         print(f"resumed after approval: {result.status}")
 
-    # A second Agent, because permission_mode is set at construction. This one
+    # A third Agent, to actually exercise "accept_edits" instead of just
+    # naming it in a comment. This example's only tool is arithmetic, not a
+    # file edit, so can_use_tool still records whether it gets asked.
+    edit_mode_calls = []
+
+    async def record_and_allow(name, arguments):
+        edit_mode_calls.append(name)
+        return PermissionDecision("allow", updated_input=arguments)
+
+    async with Agent(
+        **config, tools=[add], can_use_tool=record_and_allow,
+        permission_mode="accept_edits",
+    ) as agent:
+        handle = await agent.run("Use add to calculate 5 + 5, then say the result.")
+        result = await handle.result(raise_on_error=True)
+        require_completed(result)
+        # Observed against this repo's smoke peer, in both this run and a
+        # side-by-side probe over all three permission_mode values: can_use_tool
+        # was invoked here for "add" exactly as it was above under "default"
+        # and below under "bypass_permissions" -- accept_edits did not skip
+        # asking for this non-file-edit tool. No observable difference here,
+        # because accept_edits's documented effect (pre-approving file edits)
+        # has nothing to act on when the registered tool is arithmetic, not a
+        # file edit; a can_use_tool callback, once registered, appears to be
+        # consulted regardless of permission_mode. That is an observation
+        # about this Core's behaviour, not a guarantee read from any
+        # docstring -- nothing in the installed package documents when
+        # permission_mode itself (rather than can_use_tool's return value)
+        # decides the outcome.
+        print(f"accept_edits asked can_use_tool for a non-edit tool: {bool(edit_mode_calls)}")
+
+    # A fourth Agent, because permission_mode is set at construction. This one
     # never asks, and demonstrates cancelling a reply still in flight --
     # "[[slow]]" makes the smoke peer stall between chunks, since a reply that
     # has already finished cannot be cancelled.
@@ -67,9 +98,23 @@ async def main(config=None):
     ) as agent:
         handle = await agent.run("[[slow]] Say hello in one short sentence.")
         cancelled = await handle.cancel()
+        # A structural guard, matching the interrupt half's: if "[[slow]]" ever
+        # stopped stalling the peer, the reply could complete before the
+        # cancel request lands, and Run.cancel (per remy/_agent.py) returns
+        # whatever RunResult the run actually settled with -- "completed", not
+        # "cancelled". Fail loudly rather than silently accepting that.
+        if cancelled.status != "cancelled":
+            raise RuntimeError(
+                f"expected the cancelled run to end as cancelled, got {cancelled.status!r}"
+            )
         print(f"cancelled run ended as {cancelled.status}")
-        # Releases the event stream explicitly. Leaving the Agent's context
-        # manager also does it; call this when you drop a handle early.
+        # Closes this handle's own spooled event-stream file and marks it
+        # disposed (remy/_agent.py: Run.aclose). Leaving the Agent's context
+        # manager does NOT do this -- Agent.aclose only fails any outstanding
+        # runs' result futures and clears the agent's run registry; it never
+        # touches a handle's stream. Call Run.aclose explicitly when you drop
+        # a handle early, or the underlying file is only closed later by
+        # Run.__del__ under non-deterministic GC.
         await handle.aclose()
 
 

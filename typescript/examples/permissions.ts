@@ -52,7 +52,36 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     await asking.close();
   }
 
-  // A second Agent, because permissionMode is set at construction.
+  // A third Agent, to actually exercise 'accept_edits' instead of just
+  // naming it in a comment. This example's only tool is arithmetic, not a
+  // file edit, so onPermission still records whether it gets asked.
+  const editModeCalls: string[] = [];
+  const editing = await Agent.connect({
+    ...ready, tools: [add], permissionMode: 'accept_edits',
+    onPermission(name: string, input) { editModeCalls.push(name); return { behavior: 'allow', updatedInput: input }; },
+  });
+  try {
+    const handle = await editing.run('Use add to calculate 5 + 5, then say the result.');
+    const result = await handle.result;
+    requireCompleted(result);
+    // Observed against this repo's smoke peer, in both this run and a
+    // side-by-side probe over all three permissionMode values: onPermission
+    // was invoked here for 'add' exactly as it was above under 'default' and
+    // below under 'bypass_permissions' -- accept_edits did not skip asking
+    // for this non-file-edit tool. No observable difference here, because
+    // accept_edits's documented effect (pre-approving file edits) has
+    // nothing to act on when the registered tool is arithmetic, not a file
+    // edit; an onPermission callback, once registered, appears to be
+    // consulted regardless of permissionMode. That is an observation about
+    // this Core's behaviour, not a guarantee read from any docstring --
+    // nothing in the installed package documents when permissionMode itself
+    // (rather than onPermission's return value) decides the outcome.
+    console.log(`accept_edits asked onPermission for a non-edit tool: ${editModeCalls.length > 0}`);
+  } finally {
+    await editing.close();
+  }
+
+  // A fourth Agent, because permissionMode is set at construction.
   const trusting = await Agent.connect({
     ...ready, tools: [add], permissionMode: 'bypass_permissions',
     onPermission(_name, input) { return { behavior: 'allow', updatedInput: input }; },
@@ -69,6 +98,17 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     const acknowledged = await handle.cancel();
     console.log(`cancel acknowledged: ${acknowledged}`);
     const cancelled = await handle.result;
+    // A structural guard, matching the interrupt half's: if '[[slow]]' ever
+    // stopped stalling the peer, the reply could complete before the cancel
+    // request lands. Unlike Python, where Run.cancel's own return value is
+    // the terminal RunResult to check, this binding's cancel() only reports
+    // acknowledgement (a boolean) -- the terminal status has to come from
+    // `result` instead, which is why the check sits here rather than on
+    // `acknowledged`. Fail loudly rather than silently accepting a
+    // 'completed' run as if it had been cancelled.
+    if (cancelled.status !== 'cancelled') {
+      throw new Error(`expected the cancelled run to end as cancelled, got ${cancelled.status}`);
+    }
     console.log(`cancelled run ended as ${cancelled.status}`);
   } finally {
     await trusting.close();

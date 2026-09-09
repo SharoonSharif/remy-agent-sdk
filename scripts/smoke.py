@@ -121,6 +121,7 @@ class ModelPeer(BaseHTTPRequestHandler):
             self.send_response(429)
             self.send_header("Content-Type", "application/json")
             self.send_header("Retry-After", "2")
+            self.send_header("X-Request-Id", "req-demo-1")
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)

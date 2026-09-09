@@ -13,11 +13,14 @@ export async function main(config: AgentOptions = options()): Promise<void> {
 
     // Machine-readable facts, so a caller can decide without parsing a string.
     // The Python binding spells `is_retryable`; here it is `isRetryable`.
-    // Observed against this repo's local smoke peer: code, isRetryable and
-    // retryAfter all arrive populated, but requestId prints as undefined here
-    // -- the peer's 429 body carries a request_id, but nothing in that
-    // response is a request-id HEADER, and undefined is what shows up on the
-    // caught error. A real gateway that returns one should populate it.
+    // Confirmed by testing against this repo's local smoke peer: requestId
+    // only populates when the response carries a request-id HEADER -- this
+    // peer sends "X-Request-Id"; a request_id field inside the JSON error
+    // body is not enough by itself (the peer's body has always carried one,
+    // and that alone left this field unset). isRetryable is not
+    // header-sourced at all -- it is derived from how the failure is
+    // classified (its status/type) -- which is why it arrives populated here
+    // independently of any header.
     console.log(`code: ${error.code}`);
     console.log(`retryable: ${error.isRetryable}`);
     console.log(`retry_after: ${error.retryAfter}`);

@@ -21,11 +21,14 @@ async def main(config=None):
 
         # Four machine-readable facts, which is the point of a typed error:
         # a caller can decide what to do without parsing a message string.
-        # Observed against this repo's local smoke peer: code, is_retryable and
-        # retry_after all arrive populated, but request_id prints as None here
-        # -- the peer's 429 body carries a request_id, but nothing in that
-        # response is a request-id HEADER, and it is None that shows up on the
-        # caught error. A real gateway that returns one should populate it.
+        # Confirmed by testing against this repo's local smoke peer: request_id
+        # only populates when the response carries a request-id HEADER -- this
+        # peer sends "X-Request-Id"; a request_id field inside the JSON error
+        # body is not enough by itself (the peer's body has always carried
+        # one, and that alone left this field unset). is_retryable is not
+        # header-sourced at all -- it is derived from how the failure is
+        # classified (its status/type) -- which is why it arrives populated
+        # here independently of any header.
         print(f"code: {error.code}")
         print(f"retryable: {error.is_retryable}")
         print(f"retry_after: {error.retry_after}")

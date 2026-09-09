@@ -41,7 +41,8 @@ async def main(config=None):
             # is where it happened -- run_id, attempt_id, seq, origin. seq
             # orders events within a run, which matters once you buffer them.
             envelope = event.envelope
-            assert isinstance(envelope, EventEnvelope)
+            if not isinstance(envelope, EventEnvelope):
+                raise RuntimeError(f"expected an EventEnvelope, got {type(envelope)!r}")
             if isinstance(event, ThinkingDeltaEvent):
                 print(f"thinking delta seq={envelope.seq}: {event.text}")
             elif isinstance(event, TextDeltaEvent):

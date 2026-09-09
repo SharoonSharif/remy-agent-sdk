@@ -37,7 +37,8 @@ async def main(config=None):
         state = interrupted.run_state
         if state is None:
             raise RuntimeError("expected an interrupt to produce resumable state")
-        assert isinstance(state, RunState)
+        if not isinstance(state, RunState):
+            raise RuntimeError(f"expected a RunState, got {type(state)!r}")
 
         # Plain serializable data, so the pause can outlive the process: write
         # it to a queue, let a human approve tomorrow, resume then.

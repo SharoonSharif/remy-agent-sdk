@@ -9,7 +9,8 @@ async def main(config=None):
     # needed here. Only auth is.
     config = options() if config is None else config
     found = await models(auth=config["auth"])
-    assert all(isinstance(entry, Model) for entry in found)
+    if not all(isinstance(entry, Model) for entry in found):
+        raise RuntimeError(f"expected every catalog entry to be a Model, got {found!r}")
     print(f"{len(found)} models available")
     for model in found:
         print(f"  {model.id} ({model.owned_by or 'unknown provider'})")

@@ -22,9 +22,9 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     skills: { greet: { description: 'Greet in one line.', content: 'Reply with a greeting.' } },
     agents: { summarizer: { description: 'Summarize text.', prompt: 'Summarize briefly.' } },
     // Hooks run in THIS process, like tools and permission callbacks. The
-    // real Hook type (typescript/node_modules/@corepass/remy-agent-sdk/dist/
-    // protocol/agent/types.d.ts) is a union of CallbackHook
-    // ({event, callback, name?}) and CommandHook ({event, command, timeout?})
+    // real Hook type, exported from '@corepass/remy-agent-sdk/agent', is a
+    // union of CallbackHook ({event, callback, name?}) and CommandHook
+    // ({event, command, timeout?})
     // -- always a LIST of these, never the Python binding's {event: callable}
     // mapping. Valid events are the same four as Python: before_run,
     // after_run, before_tool, after_tool. AgentOptions has no hookCallbacks

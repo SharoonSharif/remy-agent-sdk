@@ -62,10 +62,10 @@ async def main(config=None):
         #   hooks={"before_run": note_run_start},
         #
         # registers its callables for you automatically and needs no
-        # hook_callbacks at all; but its branch of _prepare_hooks
-        # (python/.venv/lib/python3.11/site-packages/remy/_agent.py) never
-        # consults hook_callbacks, so a name placed there while hooks stayed
-        # a mapping would be accepted at construction and then never invoked.
+        # hook_callbacks at all; but its branch of remy._agent's
+        # _prepare_hooks never consults hook_callbacks, so a name placed
+        # there while hooks stayed a mapping would be accepted at
+        # construction and then never invoked.
         # This example demonstrates hook_callbacks, so it uses the list form.
         hooks=[
             {"event": "before_run", "callback": "on_run"},
@@ -87,11 +87,11 @@ async def main(config=None):
         # already-registered tool is what actually connects the two; without
         # it, a model that calls the namespaced tool gets back "unregistered
         # tool 'mcp__local__multiply'". This is a real Python/TypeScript
-        # asymmetry, not a guess: the TypeScript binding's own compiled source
-        # (dist/protocol/agent/agent.js) does this wiring FOR you when the
-        # tools list holds live Tool objects, which is why extending.ts needs
-        # no such hint. Confirmed by reading both the Core's and the
-        # TypeScript SDK's source for how an "sdk" MCP tool call is dispatched.
+        # asymmetry, not a guess: the TypeScript binding's own Agent.connect()
+        # does this wiring FOR you when the tools list holds live Tool
+        # objects, which is why extending.ts needs no such hint. Confirmed by
+        # reading both the Core's and the TypeScript SDK's source for how an
+        # "sdk" MCP tool call is dispatched.
         mcp_servers={"local": {"type": "sdk", "tools": [
             {**multiply.descriptor(), "callback": "multiply"},
         ]}},

@@ -59,7 +59,7 @@ async def main(config=None):
         require_completed(result)
         print(f"resumed after approval: {result.status}")
 
-    # A third Agent, to actually exercise "accept_edits" instead of just
+    # A second Agent, to actually exercise "accept_edits" instead of just
     # naming it in a comment. This example's only tool is arithmetic, not a
     # file edit, so can_use_tool still records whether it gets asked.
     edit_mode_calls = []
@@ -90,7 +90,7 @@ async def main(config=None):
         # decides the outcome.
         print(f"accept_edits asked can_use_tool for a non-edit tool: {bool(edit_mode_calls)}")
 
-    # A fourth Agent, because permission_mode is set at construction. This one
+    # A third Agent, because permission_mode is set at construction. This one
     # never asks, and demonstrates cancelling a reply still in flight --
     # "[[slow]]" asks the smoke peer to stall between chunks so the cancel is
     # meant to land mid-stream by design. Observed against this repo's smoke
@@ -106,8 +106,8 @@ async def main(config=None):
         cancelled = await handle.cancel()
         # A structural guard, matching the interrupt half's: if "[[slow]]" ever
         # stopped stalling the peer, the reply could complete before the
-        # cancel request lands, and Run.cancel (per remy/_agent.py) returns
-        # whatever RunResult the run actually settled with -- "completed", not
+        # cancel request lands, and remy.Run.cancel returns whatever
+        # RunResult the run actually settled with -- "completed", not
         # "cancelled". Fail loudly rather than silently accepting that.
         if cancelled.status != "cancelled":
             raise RuntimeError(
@@ -115,9 +115,10 @@ async def main(config=None):
             )
         print(f"cancelled run ended as {cancelled.status}")
         # Closes this handle's own spooled event-stream file and marks it
-        # disposed (remy/_agent.py: Run.aclose). Leaving the Agent's context
-        # manager does NOT do this -- Agent.aclose only fails any outstanding
-        # runs' result futures and clears the agent's run registry; it never
+        # disposed (remy.Run.aclose). Leaving the Agent's context manager does
+        # NOT do this -- Agent.aclose closes the Core subprocess and cancels
+        # the pump and callback tasks, then fails any outstanding runs'
+        # result futures and clears the agent's run registry; it never
         # touches a handle's stream. Call Run.aclose explicitly when you drop
         # a handle early, or the underlying file is only closed later by
         # Run.__del__ under non-deterministic GC.

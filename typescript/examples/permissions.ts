@@ -37,7 +37,8 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     // approveTool / denyTool build the approval; the Python binding spells
     // this `RunState.with_approval`. Unlike the Python method, approveTool
     // takes the tool call id as its own argument rather than a method on the
-    // state -- read from dist/protocol/agent/run.d.ts, not guessed:
+    // state -- read from the `approveTool`/`denyTool` functions exported
+    // from '@corepass/remy-agent-sdk/agent', not guessed:
     // `approveTool(state, toolCallId, updatedInput?)`. The id itself lives
     // under the same "pending_tool_calls[].id" key the Python example
     // dumped from this repo's Core.
@@ -52,7 +53,7 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     await asking.close();
   }
 
-  // A third Agent, to actually exercise 'accept_edits' instead of just
+  // A second Agent, to actually exercise 'accept_edits' instead of just
   // naming it in a comment. This example's only tool is arithmetic, not a
   // file edit, so onPermission still records whether it gets asked.
   const editModeCalls: string[] = [];
@@ -81,7 +82,7 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     await editing.close();
   }
 
-  // A fourth Agent, because permissionMode is set at construction.
+  // A third Agent, because permissionMode is set at construction.
   const trusting = await Agent.connect({
     ...ready, tools: [add], permissionMode: 'bypass_permissions',
     onPermission(_name, input) { return { behavior: 'allow', updatedInput: input }; },

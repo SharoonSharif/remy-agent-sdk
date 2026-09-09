@@ -38,7 +38,7 @@ Three, each settled with the requester rather than assumed:
 
 ## Scenario grouping
 
-Six new scenarios, in both bindings, for twelve new files.
+Seven new scenarios, in both bindings, for fourteen new files.
 
 | Scenario | Parameters and exports it demonstrates |
 |---|---|
@@ -46,6 +46,7 @@ Six new scenarios, in both bindings, for twelve new files.
 | `sessions` | `session_store`; `Session` (all seven members), `SessionStore`, `Agent.resume` |
 | `permissions` | `permission_mode` (all three values); `RunState`, `Run.cancel`, `Run.status`, `Run.aclose` |
 | `events` | `EventEnvelope`, `RunEvent`, `ThinkingDeltaEvent`, `ToolEvent`, `UsageEvent` |
+| `errors` | `RemyError` and its `code` / `is_retryable` / `retry_after` / `request_id` |
 | `extending` | `skills`, `agents`, `hooks`, `hook_callbacks`, `mcp_servers` |
 | `one_shot` | `run()`, `arun()`; `SDK_API_VERSION`, `PROTOCOL_NAME`, `PROTOCOL_VERSION` |
 
@@ -53,6 +54,13 @@ With the existing four, coverage closes: all 20 `Agent` parameters and all 27
 exports appear in at least one runnable example. The table above is the
 checkable claim — it was built by enumerating both lists from the installed
 package, not by estimate.
+
+`errors` was missing from the first version of this table, and the omission is
+worth recording rather than quietly fixing: the claim "all 27 exports" was
+made and was false, because `RemyError` appeared in no scenario. Re-deriving
+the table from `remy.__all__` is what caught it. The gap was not one name — it
+was that nothing demonstrated error handling at all, which is one of the nine
+rows of the public contract.
 
 ### Why these groups
 
@@ -68,6 +76,13 @@ tool call" — even though both involve resuming.
 `one_shot` exists because `run()` / `arun()` are a different entry point, not
 a different configuration: a consumer who only needs one prompt should not
 have to read the Agent lifecycle to find them.
+
+`errors` is separate from `events` rather than folded into it. Both involve
+reading what came back, but a consumer arriving with "how do I handle a rate
+limit" should not have to read an event-iteration example to find the answer,
+and provoking a failure is structurally different from consuming a successful
+stream. It also needs a deliberately failing run, which no other scenario
+wants.
 
 ## The interruption flow
 
@@ -99,17 +114,51 @@ tied to a scenario that cannot otherwise be verified offline:
 3. **A real `GET /models` body** — currently `{"data": []}`. The models
    example asserts against the catalog, and an empty list would let a broken
    parse pass.
-4. **Distinguishable replies across turns** — `Session` resume and fork
-   issue several requests whose message histories differ, and the example
-   asserts the conversation continued rather than restarted. One canned reply
-   for every request would make a resumed session and a fresh one look
-   identical, so the peer must vary its answer with the history it receives.
+4. **Distinguishable replies across turns** — needed to ASSERT session
+   behaviour, not to make it work. Session state is Core-side: `smoke.py`
+   already gives the real Core a `COREPASS_HOME` temp directory, and the fake
+   peer is only a model endpoint (`chat/completions` and `/tasks`), so resume
+   and fork function without touching it. What does not function is the
+   assertion: with one canned reply for every request, a resumed session and a
+   fresh one look identical, so the example could pass while proving nothing.
+   The peer must therefore vary its answer with the history it receives.
+
+   An earlier version of this spec listed this as a prerequisite for
+   `sessions` to work at all, which put that scenario last in the sequence
+   below. It is not a prerequisite, and the order is corrected accordingly.
+
+5. **An error response on demand** — `errors` needs a run that fails with a
+   `code`, `retry_after` and `request_id` to read. A 429 carrying those is the
+   cheapest shape, and the peer must produce it for that example only, since
+   every other case needs the success path.
 
 The peer must also route by path, which it began doing when `/tasks` was
 added; `GET` still ignores the path and needs the same treatment.
 
 The example list in `smoke.py` is hard-coded as three names. It becomes all
-ten, so the run is 20 cases — ten scenarios in two languages.
+eleven, so the run is 22 cases — eleven scenarios in two languages.
+
+## Three parameters constrained by the smoke run
+
+Demonstrating these naively breaks the offline check, so the examples are
+bounded up front rather than debugged later:
+
+- **`core_spec` overrides `REMY_CORE`.** The smoke run works by injecting
+  `REMY_CORE`; a `CoreSpec` with a hard-coded path would point somewhere that
+  does not exist there. `configuration` must derive its `CoreSpec` from the
+  environment, which is also the honest demonstration — a consumer writes a
+  path they know, not a literal from someone else's machine.
+- **`handshake_timeout` / `command_timeout` must stay generous.** The
+  temptation is to set them low so the effect is visible; that converts the
+  smoke run into an intermittent failure on a loaded machine. They are
+  demonstrated as explicit values at or above their defaults, with a comment
+  saying what lowering them would do.
+- **`preset="remy_code"` needs verifying before it is written.** It turns on
+  product behaviour — real skills and filesystem tools — and the fake peer
+  answers with a canned reply that ignores the tools it is offered. Whether
+  the Core then attempts a real tool call is unknown, and step 1 below settles
+  it. If it does, `configuration` demonstrates `preset` and skips executing
+  that run, rather than shipping a scenario that hangs.
 
 ## Fixtures
 
@@ -122,25 +171,28 @@ is inline, per decision 2 above.
 Four READMEs carry claims that this change falsifies, and each is a claim a
 reader would act on:
 
-- "the same four scenarios" becomes ten, in `README.md` and `README.zh-CN.md`.
+- "the same four scenarios" becomes eleven, in `README.md` and
+  `README.zh-CN.md`.
 - "The first three run a real Agent through its Core subprocess" needs
-  rewriting: after this, nine do and only `models` does not.
-- The per-language READMEs list run commands; six more are added. Only
+  rewriting: after this, ten do and only `models` does not.
+- The per-language READMEs list run commands; seven more are added. Only
   `models` is marked as needing no `REMY_CORE`: `run()` and `arun()` spawn a
   Core like any Agent, so `one_shot` needs one.
-- `README.zh-CN.md` says the smoke run covers six examples. It becomes 20.
+- `README.zh-CN.md` says the smoke run covers six examples. It becomes 22.
 
 ## Sequencing
 
 Dependency order, not preference:
 
-1. Extend the fake gateway. Nothing new can be verified before this.
-2. `configuration`, `one_shot`, `events` — these need no new peer capability
-   and can land as soon as step 1 is in.
-3. `extending` — inline skills, agents, hooks and an sdk-type MCP server.
-4. `sessions` — needs multi-turn peer behaviour.
-5. `permissions` — needs delayed streaming; the most peer-dependent.
-6. Documentation, then the full 20-case smoke run as the closing check.
+1. Extend the fake gateway, and settle the `preset` question above. Nothing
+   new can be verified before this.
+2. `configuration`, `one_shot`, `events` — no new peer capability needed.
+3. `sessions` — moved up from last. Its Core-side state needs nothing from the
+   peer; only its assertion does.
+4. `extending` — inline skills, agents, hooks and an sdk-type MCP server.
+5. `errors` — needs the peer's on-demand failure.
+6. `permissions` — needs delayed streaming; the most peer-dependent, so last.
+7. Documentation, then the full 22-case smoke run as the closing check.
 
 ## Non-goals
 

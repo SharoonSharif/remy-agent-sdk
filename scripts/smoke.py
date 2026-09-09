@@ -65,6 +65,7 @@ EXAMPLES = (
     ("events", "thinking delta"),
     ("configuration", "configured cwd"),
     ("sessions", "second turn saw turn=2"),
+    ("extending", "before_run hook fired"),
 )
 
 

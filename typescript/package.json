@@ -15,6 +15,7 @@
     "events": "node --experimental-strip-types examples/events.ts",
     "configuration": "node --experimental-strip-types examples/configuration.ts",
     "sessions": "node --experimental-strip-types examples/sessions.ts",
+    "extending": "node --experimental-strip-types examples/extending.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

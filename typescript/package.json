@@ -1,0 +1,22 @@
+{
+  "name": "remy-sdk-typescript-examples",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "hello": "node --experimental-strip-types examples/hello.ts",
+    "streaming": "node --experimental-strip-types examples/streaming.ts",
+    "tool": "node --experimental-strip-types examples/custom-tool.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@corepass/remy-agent-sdk": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "5.9.3"
+  }
+}

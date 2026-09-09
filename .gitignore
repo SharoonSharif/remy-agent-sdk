@@ -1,0 +1,17 @@
+# Credentials and local settings
+.env
+.env.*
+!.env.example
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+# Node and build outputs
+node_modules/
+dist/
+build/
+# Local SDK distributions
+*.whl
+*.tgz
+.DS_Store

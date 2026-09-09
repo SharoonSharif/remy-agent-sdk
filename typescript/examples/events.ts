@@ -12,6 +12,11 @@ export async function main(config: AgentOptions = options()): Promise<void> {
       },
       execute(input) { return Number(input.a) + Number(input.b); },
     }],
+    // This example is about events, not permissions -- but with no permission
+    // decision the Core auto-resolves the pending tool call to "interrupt",
+    // and the run ends before most of the events below ever fire. The
+    // callback exists only to let the run finish; see custom-tool.ts for the
+    // permission topic itself.
     onPermission(name, input) {
       return name === 'add' ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny' };
     },

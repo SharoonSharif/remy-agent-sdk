@@ -65,8 +65,8 @@ EXAMPLES = (
     ("events", "thinking delta"),
     ("configuration", "configured cwd"),
     ("sessions", "second turn saw turn=2"),
-    ("extending", "before_run hook fired"),
-    ("errors", "retryable:"),
+    ("extending", "The result is 42."),
+    ("errors", "request_id: req-demo-1"),
     ("permissions", "resumed after approval"),
 )
 
@@ -130,17 +130,44 @@ class ModelPeer(BaseHTTPRequestHandler):
         used_tool = any(m["role"] == "tool" for m in body["messages"])
         tool_call = bool(body.get("tools")) and not used_tool
         if tool_call:
+            # Call a tool the request actually offers, not a name hard-coded
+            # regardless of what's registered. extending.py/ts registers only
+            # "multiply" and "mcp__local__multiply" -- calling "add"
+            # unconditionally (the old behaviour) got back "tool 'add' not
+            # available in this sub-agent" from the real Core, so the local
+            # callback and the sdk-MCP path were never exercised by this
+            # harness. custom_tool/events register only "add", so the
+            # fallback keeps those rows exactly as before.
+            offered = {
+                t.get("function", {}).get("name")
+                for t in (body.get("tools") or [])
+                if isinstance(t, dict)
+            }
+            name = next(
+                (n for n in ("multiply", "mcp__local__multiply", "add") if n in offered),
+                "add",
+            )
+            arguments = '{"a":6,"b":7}' if "multiply" in name else '{"a":2,"b":3}'
             message = {"role": "assistant", "content": None, "tool_calls": [{
                 "id": "demo-add-1", "type": "function",
-                "function": {"name": "add", "arguments": '{"a":2,"b":3}'},
+                "function": {"name": name, "arguments": arguments},
             }]}
         else:
             # Turn count in the reply, so "the conversation continued" is
             # observable. With one canned answer, a resumed session and a fresh
             # one are indistinguishable and an assertion on either is empty.
             turns = sum(1 for m in body.get("messages", []) if m.get("role") == "user")
-            message = {"role": "assistant", "content":
-                       "The result is 5." if used_tool else f"Demo reply: ready. turn={turns}"}
+            if used_tool:
+                # Echo the tool's own return value rather than a value
+                # hard-coded for one specific tool call -- this way the reply
+                # is only ever right if the tool actually ran and its result
+                # made it back here, whether that tool was "add" or
+                # "multiply"/"mcp__local__multiply".
+                tool_results = [m for m in body["messages"] if m.get("role") == "tool"]
+                content = f"The result is {tool_results[-1].get('content')}."
+            else:
+                content = f"Demo reply: ready. turn={turns}"
+            message = {"role": "assistant", "content": content}
         finish = "tool_calls" if tool_call else "stop"
         base = {"id": "demo-response", "created": 0, "model": "gpt-4o"}
         usage = {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7}

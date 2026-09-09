@@ -24,7 +24,10 @@ export DEMO_PRODUCT_ID=your-product-id
 ```
 
 The examples use the development API at `https://dev-api.corepass.com/edge/v1`.
-`.env.example` is a reference and is not automatically loaded.
+Copy `.env.example` to `.env` in the language directory and fill it in;
+the examples load that file, but never override a variable already set in the
+environment, so an exported value or an IDE run configuration still wins.
+`.env.example` contains placeholders only — do not commit real credentials.
 
 The bearer is a `cpst2` SERVICE token, not a user's own bearer and not a
 direct model-provider API key. The gateway enforces task attribution: a
@@ -39,6 +42,8 @@ for.
 .venv/bin/python examples/hello.py
 .venv/bin/python examples/streaming.py
 .venv/bin/python examples/custom_tool.py
+# Needs no REMY_CORE — it starts no Core.
+.venv/bin/python examples/models.py
 ```
 
 For an IDE run configuration, select this directory's `.venv/bin/python` as the

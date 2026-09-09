@@ -4,7 +4,31 @@ import type { AgentOptions, RunResult } from '@corepass/remy-agent-sdk/agent';
 
 export const GATEWAY = 'https://dev-api.corepass.com/edge/v1';
 
+/**
+ * Fill in DEMO_* from `typescript/.env`, WITHOUT overriding what is set.
+ *
+ * Not overriding is the load-bearing half, and `process.loadEnvFile` already
+ * behaves that way. `scripts/smoke.py` runs these examples against a local
+ * fake model peer by injecting `DEMO_*` into the child environment; if a
+ * developer's real `.env` won here, the smoke run would authenticate with a
+ * real token against the real gateway and stop being the offline check it
+ * advertises. A shell that exported something on purpose wins for the same
+ * reason.
+ *
+ * Node's built-in rather than a dotenv package: these examples are published
+ * to show what integrating the SDK costs, and one convenience is not worth a
+ * dependency in that answer. Requires Node 20.12+, below this repo's floor.
+ */
+function loadEnvFile(): void {
+  try {
+    process.loadEnvFile(new URL('../.env', import.meta.url));
+  } catch {
+    // No .env is the normal case for a consumer who exports in the shell.
+  }
+}
+
 export function options(): AgentOptions {
+  loadEnvFile();
   const names = ['DEMO_MODEL', 'DEMO_TOKEN', 'DEMO_PRODUCT_ID'] as const;
   const missing = names.filter(name => !process.env[name]?.trim());
   if (missing.length) throw new Error(`Set required environment variables: ${missing.join(', ')}`);

@@ -11,8 +11,12 @@ npm install
 
 The examples use the development API at `https://dev-api.corepass.com/edge/v1`.
 Set `REMY_CORE`, `DEMO_MODEL`, `DEMO_TOKEN` and `DEMO_PRODUCT_ID` in your shell.
-See `.env.example` for placeholders; it is not automatically loaded. `REMY_CORE`
-is the absolute path to the compatible frozen executable.
+Copy `.env.example` to `.env` in the language directory and fill it in;
+the examples load that file, but never override a variable already set in the
+environment, so an exported value or an IDE run configuration still wins.
+`.env.example` contains placeholders only — do not commit real credentials.
+
+`REMY_CORE` is the absolute path to the compatible frozen executable.
 
 The bearer is a `cpst2` SERVICE token, not a user's own bearer and not a
 direct model-provider API key. The gateway enforces task attribution: a
@@ -28,6 +32,8 @@ npm run typecheck
 npm run hello
 npm run streaming
 npm run tool
+# Needs no REMY_CORE — it starts no Core.
+npm run models
 ```
 
 Hello prints final text. Streaming prints incremental text and final usage. The

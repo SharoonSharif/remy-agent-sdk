@@ -10,7 +10,9 @@ SDK 实现与 Core 运行时通过独立发行包提供；示例只使用公开 
 - [Python 安装与运行](python/README.md)
 - [TypeScript 安装与运行](typescript/README.md)
 
-两种语言都提供 hello、流式输出、自定义工具三个对应场景。
+两种语言都提供 hello、流式输出、自定义工具、模型列表四个对应场景。
+前三个会通过 Core 子进程运行真实 Agent；模型列表不会 —— 查询目录不启动 Core、
+不产生花费，所以既不需要 `REMY_CORE` 也不需要 usage task，只要 auth。
 示例默认不启用产品 preset 或内置工具；工具示例仅批准自己的加法函数。
 
 示例直接使用开发 API：`https://dev-api.corepass.com/edge/v1`。
@@ -23,7 +25,9 @@ API key。网关强制用量归属：服务身份的调用没有可计费的登�
 `metadata.task_id`。`DEMO_PRODUCT_ID` 指定计费归属的产品，它必须在令牌的
 `aud` 列表之内。
 预览阶段还需通过 `REMY_CORE` 指定兼容的冻结 Core 可执行文件。
-`.env.example` 只提供占位符，程序不会自动读取它，也不要提交真实凭据。
+把 `.env.example` 复制成同目录下的 `.env` 并填好即可；示例会读取该文件，
+但不会覆盖环境里已设置的变量，所以 shell 导出的值或 IDE 运行配置仍然优先。
+`.env.example` 只提供占位符，不要提交真实凭据。
 
 当前示例分别针对 Python SDK 0.0.1、TypeScript SDK 0.1.0。
 这不是 Core 版本配对声明。CI 目前仅做语法检查；具体安装和验证范围见英文首页。

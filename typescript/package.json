@@ -10,6 +10,7 @@
     "hello": "node --experimental-strip-types examples/hello.ts",
     "streaming": "node --experimental-strip-types examples/streaming.ts",
     "tool": "node --experimental-strip-types examples/custom-tool.ts",
+    "models": "node --experimental-strip-types examples/models.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

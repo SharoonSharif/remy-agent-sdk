@@ -3,12 +3,51 @@ import json
 import os
 import urllib.error
 import urllib.request
+from pathlib import Path
 from remy import Auth
 
 GATEWAY = "https://dev-api.corepass.com/edge/v1"
 
+#: Sits next to this directory, so running an example straight from an IDE
+#: works without a shell that has sourced anything.
+ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+
+
+def _load_env_file(path=ENV_FILE):
+    """Fill in DEMO_* from ``python/.env``, WITHOUT overriding what is set.
+
+    Not overriding is the load-bearing half. ``scripts/smoke.py`` runs the
+    examples against a local fake model peer by injecting ``DEMO_*`` into the
+    child environment; if a developer's real ``.env`` won here, the smoke run
+    would authenticate with a real token against the real gateway and stop
+    being the offline check it advertises. A shell that exported something on
+    purpose wins for the same reason.
+
+    Hand-parsed rather than pulling in python-dotenv: these examples are
+    published to show what integrating the SDK costs, and one convenience is
+    not worth a dependency in that answer.
+    """
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        # No .env is the normal case for a consumer who exports in the shell.
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, _, value = line.partition("=")
+        name = name.removeprefix("export ").strip()
+        if not name or name in os.environ:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        os.environ[name] = value
+
 
 def options():
+    _load_env_file()
     names = ("DEMO_MODEL", "DEMO_TOKEN", "DEMO_PRODUCT_ID")
     missing = [name for name in names if not os.environ.get(name, "").strip()]
     if missing:

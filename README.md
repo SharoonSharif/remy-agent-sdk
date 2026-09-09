@@ -24,13 +24,16 @@ These are independent SDK versions, not a Core compatibility guarantee. Supply
 | --- | --- |
 | [Setup and examples](python/README.md) | [Setup and examples](typescript/README.md) |
 
-Both language directories include the same three scenarios:
+Both language directories include the same four scenarios:
 
 1. **Hello** — run a prompt and read the final result.
 2. **Streaming** — consume text events and inspect final token usage.
 3. **Custom tool** — expose a local addition function and explicitly authorize it.
+4. **Models** — list what the gateway accepts as `model`, before choosing one.
 
-Every example runs a real Agent through its Core subprocess. A live model run
+The first three run a real Agent through its Core subprocess. The models
+example does not: listing the catalog starts no Core and spends nothing, so it
+needs neither `REMY_CORE` nor a usage task — only auth. A live model run
 uses the development API at `https://dev-api.corepass.com/edge/v1` and
 requires an enabled model, a service token and a product id; provider
 charges may apply.
@@ -43,8 +46,10 @@ against `POST /tasks` and passes the id to the Core as `SANDBOX_TASK_ID`, which
 the Core copies into `metadata.task_id`. `DEMO_PRODUCT_ID` names the product
 the spend is booked to and must be one of the audiences your token was issued
 for. Tokens are read from the environment and never included in
-example output. `.env.example` contains placeholders only; examples do not load
-`.env` files automatically.
+example output. Copy `.env.example` to `.env` in the language directory and fill it in;
+the examples load that file, but never override a variable already set in the
+environment, so an exported value or an IDE run configuration still wins.
+`.env.example` contains placeholders only — do not commit real credentials.
 
 By default, the SDK starts with no product preset, project settings or built-in
 tools. The custom-tool example grants access only to its own addition function.

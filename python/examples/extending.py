@@ -23,6 +23,12 @@ async def main(config=None):
         fired.append("before_tool")
         print("before_tool hook fired")
 
+    # This example is about skills, agents, hooks and MCP -- not permissions --
+    # but with no permission decision the Core auto-resolves the pending
+    # multiply call to "interrupt", and the run ends before the before_tool
+    # hook below ever gets a tool round trip to fire on. The callback exists
+    # only to let the run finish; see custom_tool.py for the permission
+    # topic itself.
     async def allow_multiply(name, arguments):
         if name == "multiply":
             return PermissionDecision("allow", updated_input=arguments)
@@ -48,14 +54,24 @@ async def main(config=None):
             "description": "Summarize text.",
             "prompt": "Summarize briefly.",
         }},
-        # Mapping form: the callables are registered for you. The list form
-        # ({"event": ..., "callback": "name"}) refers to names you registered
-        # yourself through hook_callbacks, which is the next parameter.
-        hooks={"before_run": note_run_start},
-        # Named callables a list-form registration can point at. Shown together
-        # with the mapping form above because the two are alternatives and the
-        # difference is only where the name comes from.
-        hook_callbacks={"on_tool": note_tool_start},
+        # List form: each registration names a callback by the name it was
+        # registered under in hook_callbacks below -- that lookup is the only
+        # thing that makes hook_callbacks reachable. The simpler mapping form,
+        #
+        #   hooks={"before_run": note_run_start},
+        #
+        # registers its callables for you automatically and needs no
+        # hook_callbacks at all; but its branch of _prepare_hooks
+        # (python/.venv/lib/python3.11/site-packages/remy/_agent.py) never
+        # consults hook_callbacks, so a name placed there while hooks stayed
+        # a mapping would be accepted at construction and then never invoked.
+        # This example demonstrates hook_callbacks, so it uses the list form.
+        hooks=[
+            {"event": "before_run", "callback": "on_run"},
+            {"event": "before_tool", "callback": "on_tool"},
+        ],
+        # Named callables the list-form registrations above look up by name.
+        hook_callbacks={"on_run": note_run_start, "on_tool": note_tool_start},
         # An in-process MCP server: no subprocess, no URL, no dependency. The
         # tools list wants the same JSON descriptor .descriptor() produces for
         # the top-level `tools` wire format, NOT a live Tool object -- the

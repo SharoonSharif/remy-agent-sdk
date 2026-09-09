@@ -10,6 +10,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -91,6 +92,23 @@ class ModelPeer(BaseHTTPRequestHandler):
         if self.path.rstrip("/").endswith("/tasks"):
             self._json({"task_id": "task_local_demo"}, status=201)
             return
+        prompt = " ".join(
+            str(m.get("content") or "") for m in body.get("messages", [])
+        )
+        # Selected by prompt text: the prompt is the only channel an example
+        # controls all the way through the Core to here.
+        if "[[fail]]" in prompt:
+            payload = json.dumps({"error": {
+                "code": 42901, "type": "rate_limited",
+                "message": "demo rate limit", "request_id": "req-demo-1",
+            }}).encode()
+            self.send_response(429)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Retry-After", "2")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
         used_tool = any(m["role"] == "tool" for m in body["messages"])
         tool_call = bool(body.get("tools")) and not used_tool
         if tool_call:
@@ -114,8 +132,19 @@ class ModelPeer(BaseHTTPRequestHandler):
                 {**base, "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": delta, "finish_reason": None}]},
                 {**base, "object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {}, "finish_reason": finish}], "usage": usage},
             ]
-            for chunk in chunks:
+            if "[[thinking]]" in prompt:
+                thinking = {**base, "object": "chat.completion.chunk", "choices": [
+                    {"index": 0, "delta": {"reasoning_content": "Considering."},
+                     "finish_reason": None}]}
+                self.wfile.write(("data: " + json.dumps(thinking) + "\n\n").encode())
+                self.wfile.flush()
+            for index, chunk in enumerate(chunks):
+                if index and "[[slow]]" in prompt:
+                    # A reply that finishes instantly cannot be cancelled, and a
+                    # test that cancels a finished run proves nothing.
+                    time.sleep(0.4)
                 self.wfile.write(("data: " + json.dumps(chunk) + "\n\n").encode())
+                self.wfile.flush()
             self.wfile.write(b"data: [DONE]\n\n")
             self.wfile.flush()
         else:

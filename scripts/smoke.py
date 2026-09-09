@@ -53,6 +53,16 @@ const demo = await import(url.href);
 await demo.main(config);
 """
 
+#: (example name, a substring its stdout must contain). One row per scenario;
+#: the run is this table times the two languages. An expected substring rather
+#: than exact output, because an example may legitimately print more.
+EXAMPLES = (
+    ("hello", "Demo reply: ready."),
+    ("streaming", "Demo reply: ready."),
+    ("custom_tool", "Local add(2, 3) = 5"),
+    ("models", "demo-model-a"),
+)
+
 
 class ModelPeer(BaseHTTPRequestHandler):
     def log_message(self, *_args):
@@ -182,7 +192,7 @@ def main():
                 ("typescript", ["node", "--experimental-strip-types", "--input-type=module",
                                 "-e", TYPESCRIPT_RUNNER, "smoke-harness"], "ts"),
             ]:
-                for example in ("hello", "streaming", "custom_tool"):
+                for example, expected in EXAMPLES:
                     filename = example.replace("_", "-") if language == "typescript" else example
                     path = ROOT / language / "examples" / f"{filename}.{extension}"
                     result = subprocess.run([*executable, str(path), gateway],
@@ -190,7 +200,6 @@ def main():
                                             capture_output=True, timeout=90)
                     if result.returncode:
                         raise RuntimeError(f"{language}/{filename} failed:\n{result.stderr}")
-                    expected = "Local add(2, 3) = 5" if example == "custom_tool" else "Demo reply: ready."
                     if expected not in result.stdout:
                         raise AssertionError(f"{language}/{filename} missing expected output:\n{result.stdout}")
                     print(f"PASS {language}/{filename}", flush=True)

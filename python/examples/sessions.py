@@ -21,10 +21,18 @@ async def main(config=None):
         result = await first.result(raise_on_error=True)
         require_completed(result)
 
+        # Session.resume() is a same-behavior alias for continuing this session:
+        # it literally forwards to self.run(prompt, resume_at=..., run_state=...).
+        # run() is the primitive (also used directly on Agent with session=...);
+        # resume() is the friendlier name for "continue this conversation," and
+        # it is the ONLY one of the two the TypeScript Session exposes. Using
+        # run() for the first turn and resume() for the second covers both
+        # Python members while matching the more natural reading of a second turn.
+        #
         # Same session, so the Core sends the accumulated history. The peer
         # echoes the turn count, which is how "it continued" is observable
         # rather than assumed.
-        second = await session.run("And again, please.")
+        second = await session.resume("And again, please.")
         result = await second.result(raise_on_error=True)
         require_completed(result)
         print(f"second turn saw {result.text.strip().split()[-1]}")
@@ -45,6 +53,12 @@ async def main(config=None):
 
         # Every session the store saw, for a consumer listing conversations.
         print(f"store holds {len(store.list())} snapshot(s)")
+
+        # get() reads back one cached snapshot by id. It is a read-back of what
+        # was cached locally, not a substitute for the Core's authority over
+        # session state -- refresh() above is what re-reads the real thing.
+        cached = store.get(session.session_id)
+        print(f"cached snapshot has {len(cached['messages'])} message(s)")
 
         # A session id is enough to resume in a later process -- the Core still
         # has the state, so nothing needs to be carried but the id.

@@ -39,8 +39,16 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     // is the shape sessionStore caches.
     console.log(`snapshot keys: ${Object.keys(session.snapshot).sort().join(', ')}`);
 
-    // Every session the store saw, for a consumer listing conversations.
+    // Every session the store saw, for a consumer listing conversations. list()
+    // is async here, unlike Python's synchronous SessionStore.list() -- another
+    // naming/behavior asymmetry between the two bindings' stores.
     console.log(`store holds ${(await store.list()).length} snapshot(s)`);
+
+    // get() reads back one cached snapshot by id -- a read-back of what was
+    // cached locally, not a substitute for the Core's authority over session
+    // state; refresh() above is what re-reads the real thing.
+    const cached = await store.get(session.id);
+    console.log(`cached snapshot has ${cached?.messages.length} message(s)`);
 
     // A session id is enough to resume in a later process -- the Core still
     // has the state, so nothing needs to be carried but the id.

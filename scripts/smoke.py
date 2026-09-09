@@ -66,6 +66,7 @@ EXAMPLES = (
     ("configuration", "configured cwd"),
     ("sessions", "second turn saw turn=2"),
     ("extending", "before_run hook fired"),
+    ("errors", "retryable:"),
 )
 
 

@@ -64,6 +64,7 @@ EXAMPLES = (
     ("one_shot", "Demo reply: ready."),
     ("events", "thinking delta"),
     ("configuration", "configured cwd"),
+    ("sessions", "second turn saw turn=2"),
 )
 
 
@@ -130,7 +131,12 @@ class ModelPeer(BaseHTTPRequestHandler):
                 "function": {"name": "add", "arguments": '{"a":2,"b":3}'},
             }]}
         else:
-            message = {"role": "assistant", "content": "The result is 5." if used_tool else "Demo reply: ready."}
+            # Turn count in the reply, so "the conversation continued" is
+            # observable. With one canned answer, a resumed session and a fresh
+            # one are indistinguishable and an assertion on either is empty.
+            turns = sum(1 for m in body.get("messages", []) if m.get("role") == "user")
+            message = {"role": "assistant", "content":
+                       "The result is 5." if used_tool else f"Demo reply: ready. turn={turns}"}
         finish = "tool_calls" if tool_call else "stop"
         base = {"id": "demo-response", "created": 0, "model": "gpt-4o"}
         usage = {"prompt_tokens": 4, "completion_tokens": 3, "total_tokens": 7}

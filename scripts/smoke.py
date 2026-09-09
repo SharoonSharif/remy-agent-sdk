@@ -65,11 +65,20 @@ class ModelPeer(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    #: Served by GET <path>/models. Two entries, because a one-entry list
+    #: cannot catch a parser that returns only its first result.
+    CATALOG = [
+        {"id": "demo-model-a", "owned_by": "demo-provider"},
+        {"id": "demo-model-b", "owned_by": "other-provider"},
+    ]
+
     def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(b'{"data": []}')
+        # Routing by path, which do_POST already does for /tasks. Serving one
+        # body from every path let a wrong URL pass as a right one.
+        if self.path.rstrip("/").endswith("/models"):
+            self._json({"object": "list", "data": type(self).CATALOG})
+            return
+        self._json({"data": []})
 
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))

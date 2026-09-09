@@ -48,7 +48,7 @@ Seven new scenarios, in both bindings, for fourteen new files.
 | `events` | `EventEnvelope`, `RunEvent`, `ThinkingDeltaEvent`, `ToolEvent`, `UsageEvent` |
 | `errors` | `RemyError` and its `code` / `is_retryable` / `retry_after` / `request_id` |
 | `extending` | `skills`, `agents`, `hooks`, `hook_callbacks`, `mcp_servers` |
-| `one_shot` | `arun()`; `SDK_API_VERSION`, `PROTOCOL_NAME`, `PROTOCOL_VERSION` (`run()`, the synchronous sibling, is discussed but deliberately not called — see the correction below) |
+| `one_shot` | `arun()`; `SDK_API_VERSION`, `PROTOCOL_NAME`, `PROTOCOL_VERSION` (Python's `run()`, the synchronous sibling, is discussed but deliberately not called — see the correction below) |
 
 With the existing four, coverage closes: all 20 `Agent` parameters, and 26 of
 27 exports, appear in at least one runnable example that actually exercises
@@ -72,7 +72,7 @@ same position, each mentioned only in a comment, until this review added a
 real `isinstance` check for each (`custom_tool.py`, `events.py`, `streaming.py`,
 `errors.py`; `Run` and `Tool` both landed in `custom_tool.py`) and one more
 outright miss the tightened check then surfaced, `Session` in `sessions.py`
-(also fixed the same way). `run()` — the SYNCHRONOUS one-shot entry point —
+(also fixed the same way). Python's `run()` — the SYNCHRONOUS one-shot entry point —
 is the one export left deliberately unexercised: it raises
 `RuntimeError("run() cannot nest an event loop; use await arun()")` when
 called from inside a running event loop, and every example's `main()` runs

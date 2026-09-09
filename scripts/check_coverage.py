@@ -1,15 +1,15 @@
 """Check that the Python examples cover every Agent parameter and every
-public remy export -- the central promise of the
-`2026-09-09-examples-full-parameter-coverage` plan.
+public remy export -- the central promise of
+`docs/superpowers/specs/2026-09-09-examples-full-parameter-coverage-design.md`.
 
 Usage: python3 scripts/check_coverage.py
 Exits 0 with no gaps, 1 if any gap is found, 2 if it cannot even run the
 check (no `remy` importable, no python/.venv found).
 
-This is a script version of the ad hoc check written by hand in that plan's
-task-11-brief.md Step 6, promoted to the repository after a code review found
-the original had a blind spot big enough to produce a false positive (see
-"What this script cannot see" below).
+This script replaced an ad hoc check written by hand, promoted to the
+repository after a code review found the original had a blind spot big
+enough to produce a false positive (see "What this script cannot see"
+below).
 
 ## What it checks
 
@@ -48,10 +48,10 @@ the original had a blind spot big enough to produce a false positive (see
   real name in the AST. `from remy import Tool, Run, RunResult, RunEvent,
   Usage, Session` followed by an unused import would still count as "named
   in executable code" here -- presence in the AST is necessary, not
-  sufficient. Both Task 11's review and this final one upgraded exports from
-  a bare mention (a comment, or an import nothing then used) into an
-  `isinstance` check that would actually fail if the type changed. Read what
-  a reported gap's fix actually does, don't just make the name appear.
+  sufficient. Review passes upgraded exports from a bare mention (a comment,
+  or an import nothing then used) into an `isinstance` check that would
+  actually fail if the type changed. Read what a reported gap's fix actually
+  does, don't just make the name appear.
 - TypeScript. This inspects the installed Python `remy` package and
   `python/examples/*.py` only. Whether `typescript/examples/*.ts` covers the
   same surface is a separate question this script does not answer.

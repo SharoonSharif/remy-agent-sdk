@@ -97,7 +97,8 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     const handle = await trusting.run('[[slow]] Say hello in one short sentence.');
     // Unlike Python's Run.cancel (which returns the terminal RunResult
     // directly), this binding's Run.cancel resolves to a boolean -- whether
-    // the Core acknowledged the cancel request -- read from run.d.ts
+    // the Core acknowledged the cancel request -- read from the `Run` class
+    // exported from '@corepass/remy-agent-sdk/agent'
     // (`cancel(): Promise<boolean>`), not guessed. The terminal status still
     // comes from the same `result` promise every other example reads.
     const acknowledged = await handle.cancel();

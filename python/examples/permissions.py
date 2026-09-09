@@ -114,7 +114,8 @@ async def main(config=None):
                 f"expected the cancelled run to end as cancelled, got {cancelled.status!r}"
             )
         print(f"cancelled run ended as {cancelled.status}")
-        # Closes this handle's own spooled event-stream file and marks it
+        # Awaits cancel() first if the run has not already settled, then
+        # closes this handle's own spooled event-stream file and marks it
         # disposed (remy.Run.aclose). Leaving the Agent's context manager does
         # NOT do this -- Agent.aclose closes the Core subprocess and cancels
         # the pump and callback tasks, then fails any outstanding runs'

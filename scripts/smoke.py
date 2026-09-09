@@ -67,6 +67,7 @@ EXAMPLES = (
     ("sessions", "second turn saw turn=2"),
     ("extending", "before_run hook fired"),
     ("errors", "retryable:"),
+    ("permissions", "resumed after approval"),
 )
 
 

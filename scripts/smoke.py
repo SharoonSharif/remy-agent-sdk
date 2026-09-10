@@ -143,7 +143,6 @@ class ModelPeer(BaseHTTPRequestHandler):
                 for t in (body.get("tools") or [])
                 if isinstance(t, dict)
             }
-            import sys as _s; print(f"[probe] offered={sorted(offered)}", file=_s.stderr)
             # NAMESPACED first. `extending` offers both spellings, so
             # preferring the bare "multiply" meant the sdk-MCP registration was
             # constructed and never dispatched -- the one thing that scenario

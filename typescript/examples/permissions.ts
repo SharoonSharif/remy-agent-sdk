@@ -17,9 +17,17 @@ const add = {
 export async function main(config: AgentOptions = options()): Promise<void> {
   const ready = await withTask(config);
 
-  // permissionMode is the standing policy; onPermission is the per-call
-  // question. 'interrupt' does not refuse — it stops the run and hands back
-  // resumable state so a human can decide out of band.
+  // onPermission WINS over permissionMode. The Core decides in this order:
+  // an approval already carried on the run state, then the callback if one
+  // exists, and only then the mode — so permissionMode is the fallback for a
+  // consumer that supplies NO callback, and passing one makes all three
+  // values inert. That is the answer to "why am I still asked when I set
+  // bypass_permissions", and it is the right precedence: a consumer that
+  // installs a gate should not have it bypassed by a config string. Every
+  // Agent below passes a callback, so the modes here only show where they go.
+  //
+  // 'interrupt' does not refuse — it stops the run and hands back resumable
+  // state so a human can decide out of band.
   const asking = await Agent.connect({
     ...ready, tools: [add], permissionMode: 'default',
     onPermission() { return { behavior: 'interrupt', message: 'a human should approve this' }; },

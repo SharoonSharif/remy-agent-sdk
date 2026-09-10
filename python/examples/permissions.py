@@ -22,10 +22,23 @@ async def main(config=None):
     async def allow_everything(name, arguments):
         return PermissionDecision("allow", updated_input=arguments)
 
-    # permission_mode is the standing policy; can_use_tool is the per-call
-    # question. "default" asks. "accept_edits" pre-approves file edits only.
-    # "bypass_permissions" stops asking -- for a sandbox you already trust,
-    # never for a machine you would mind being wrong about.
+    # can_use_tool WINS over permission_mode -- not the other way round, and
+    # not a partnership between the two. The Core decides in this order: an
+    # approval already carried on the RunState, then a can_use_tool callback
+    # if one exists, and only then the mode. So permission_mode is the
+    # fallback for a consumer that supplies NO callback; pass one and all
+    # three values stop mattering. Verified by running this example under
+    # each of the three: the callback is asked every time.
+    #
+    # That is the answer to "why am I still being asked when I set
+    # bypass_permissions" -- and it is the right precedence. A consumer that
+    # installs a gate should not have it bypassed by a config string.
+    #
+    # The modes themselves, for a callback-free consumer: "default" asks,
+    # "accept_edits" pre-approves file edits only, "bypass_permissions" stops
+    # asking -- for a sandbox you already trust, never for a machine you would
+    # mind being wrong about. Every Agent below passes a callback, so none of
+    # the three is doing anything here; they are set to show where they go.
     async with Agent(
         **config, tools=[add], can_use_tool=interrupt_first, permission_mode="default"
     ) as agent:

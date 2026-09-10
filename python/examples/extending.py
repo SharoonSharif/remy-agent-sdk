@@ -58,7 +58,21 @@ async def main(config=None):
             "description": "Greet in one line.",
             "content": "Reply with a greeting.",
         }},
-        # Sub-agents the Core may delegate to, declared the same way.
+        # Sub-agents the Core may delegate to. Inline like skills above, but
+        # NOT the same keys -- an earlier version of this comment said "the
+        # same way" and that reading costs you a
+        # "AgentEntry.__init__() got an unexpected keyword argument" from the
+        # Core, since AgentEntry is constructed by keyword expansion and takes
+        # no unknown ones. The body key here is "prompt" (renamed internally
+        # to "system_prompt"), where a skill's is "content". Beyond
+        # description/prompt, AgentEntry also accepts model (empty inherits
+        # the caller's), tools, disallowed_tools, mcp_servers, skills,
+        # max_turns and effort -- a sub-agent's own tool and skill allowlists
+        # are declared here, not anywhere else.
+        #
+        # Delegation is SINGLE-LEVEL, which is observable: when the model
+        # calls the `agent` tool, the child's own model request arrives with
+        # `agent` absent from its tool list, so it cannot delegate onward.
         agents={"summarizer": {
             "description": "Summarize text.",
             "prompt": "Summarize briefly.",

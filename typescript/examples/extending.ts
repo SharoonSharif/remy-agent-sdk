@@ -21,6 +21,16 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     // an unexpected keyword argument 'instructions'" -- the key it wants is
     // "content". The SDK only checks that the options object serializes.
     skills: { greet: { description: 'Greet in one line.', content: 'Reply with a greeting.' } },
+    // Sub-agents, inline like skills above but NOT with the same keys: the
+    // body key here is 'prompt' (renamed internally to 'system_prompt'),
+    // where a skill's is 'content'. The Core builds each entry by keyword
+    // expansion and rejects unknown keys, so a guessed name fails at run
+    // time rather than compile time. It also accepts model, tools,
+    // disallowedTools-equivalents, mcpServers, skills, maxTurns and effort --
+    // a sub-agent's own allowlists are declared here.
+    //
+    // Delegation is SINGLE-LEVEL, and observably so: the child's own model
+    // request arrives with 'agent' absent from its tool list.
     agents: { summarizer: { description: 'Summarize text.', prompt: 'Summarize briefly.' } },
     // Hooks run in THIS process, like tools and permission callbacks. The
     // real Hook type, exported from '@corepass/remy-agent-sdk/agent', is a

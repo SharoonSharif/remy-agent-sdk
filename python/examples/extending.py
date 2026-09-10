@@ -5,6 +5,7 @@ from config import options, require_completed, with_task
 
 async def main(config=None):
     fired = []
+    dispatched = []
 
     @tool
     def multiply(a: int, b: int) -> int:
@@ -30,8 +31,15 @@ async def main(config=None):
     # multiply call auto-resolves to "interrupt", the run ends as
     # "interrupted", and require_completed() raises before the rest of the
     # example prints. See custom_tool.py for the permission topic itself.
+    # Allows BOTH spellings, and records which one the Core actually asked
+    # about. That record is what proves which of the two registrations below
+    # served the call: a bare "multiply" means the top-level `tools=` path,
+    # while "mcp__local__multiply" means the sdk-MCP server. Allowing only
+    # the bare name -- as this example first did -- silently denied every
+    # namespaced call, so the MCP path could never run.
     async def allow_multiply(name, arguments):
-        if name == "multiply":
+        if name in ("multiply", "mcp__local__multiply"):
+            dispatched.append(name)
             return PermissionDecision("allow", updated_input=arguments)
         return PermissionDecision("deny")
 
@@ -102,6 +110,7 @@ async def main(config=None):
         result = await handle.result(raise_on_error=True)
         require_completed(result)
         print(f"hooks fired: {fired}")
+        print(f"tool dispatched as: {dispatched[0] if dispatched else 'nothing'}")
         print(result.text)
 
 

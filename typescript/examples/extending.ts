@@ -12,6 +12,7 @@ const multiply: Tool = {
 
 export async function main(config: AgentOptions = options()): Promise<void> {
   const fired: string[] = [];
+  const dispatched: string[] = [];
   const agent = await Agent.connect({
     ...(await withTask(config)),
     // Inline, and inline REPLACES rather than merges. Shape verified against
@@ -49,8 +50,18 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     // the run ends as "interrupted", and requireCompleted() raises before
     // the rest of the example prints. See custom-tool.ts for the permission
     // topic itself.
+    // Allows BOTH spellings, and records which one the Core actually asked
+    // about. That record is what proves which of the two registrations above
+    // served the call: a bare 'multiply' means the top-level `tools` path,
+    // while 'mcp__local__multiply' means the sdk-MCP server. Allowing only
+    // the bare name -- as this example first did -- silently denied every
+    // namespaced call, so the MCP path could never run.
     onPermission(name, input) {
-      return name === 'multiply' ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny' };
+      if (name === 'multiply' || name === 'mcp__local__multiply') {
+        dispatched.push(name);
+        return { behavior: 'allow', updatedInput: input };
+      }
+      return { behavior: 'deny' };
     },
   });
   try {
@@ -58,6 +69,7 @@ export async function main(config: AgentOptions = options()): Promise<void> {
     const result = await handle.result;
     requireCompleted(result);
     console.log(`hooks fired: ${fired.join(', ')}`);
+    console.log(`tool dispatched as: ${dispatched[0] ?? 'nothing'}`);
     console.log(result.text);
   } finally {
     await agent.close();

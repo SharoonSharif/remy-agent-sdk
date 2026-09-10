@@ -65,7 +65,7 @@ EXAMPLES = (
     ("events", "thinking delta"),
     ("configuration", "configured cwd"),
     ("sessions", "second turn saw turn=2"),
-    ("extending", "The result is 42."),
+    ("extending", "tool dispatched as: mcp__local__multiply"),
     ("errors", "request_id: req-demo-1"),
     ("permissions", "resumed after approval"),
 )
@@ -143,8 +143,15 @@ class ModelPeer(BaseHTTPRequestHandler):
                 for t in (body.get("tools") or [])
                 if isinstance(t, dict)
             }
+            import sys as _s; print(f"[probe] offered={sorted(offered)}", file=_s.stderr)
+            # NAMESPACED first. `extending` offers both spellings, so
+            # preferring the bare "multiply" meant the sdk-MCP registration was
+            # constructed and never dispatched -- the one thing that scenario
+            # exists to demonstrate. The bare name still has coverage: nothing
+            # else registers an MCP server, so custom_tool/events/permissions
+            # fall through to "add" exactly as before.
             name = next(
-                (n for n in ("multiply", "mcp__local__multiply", "add") if n in offered),
+                (n for n in ("mcp__local__multiply", "multiply", "add") if n in offered),
                 "add",
             )
             arguments = '{"a":6,"b":7}' if "multiply" in name else '{"a":2,"b":3}'

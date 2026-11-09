@@ -15,7 +15,14 @@ jobs:
         with:
           node-version: '22.22.3'
       - name: Check TypeScript syntax without importing SDK packages
+        # bash, not the default `bash -e`: pipefail makes a failed strip fail the step.
+        shell: bash
         run: |
+          # `node --check` does not strip types from a .ts module: it stops at the
+          # first `import` and exits 0 without checking the rest of the file. Strip
+          # the types first, then syntax-check the result as an ES module.
           for example in typescript/examples/*.ts; do
-            node --experimental-strip-types --check "$example"
+            echo "checking $example"
+            node --disable-warning=ExperimentalWarning -e 'process.stdout.write(require("node:module").stripTypeScriptTypes(require("node:fs").readFileSync(process.argv[1], "utf8")))' "$example" \
+              | node --input-type=module --check
           done
